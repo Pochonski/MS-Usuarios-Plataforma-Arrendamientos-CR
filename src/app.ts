@@ -34,7 +34,7 @@ class App {
           ]
         : '*',
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'ocp-apim-subscription-key'],
       credentials: true,
     }));
 
