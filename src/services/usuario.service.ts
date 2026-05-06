@@ -6,19 +6,23 @@ import { config } from '../config/env';
 import { RolUsuario } from '../models/enums';
 
 export class UsuarioService {
-  async getAll(): Promise<Usuario[]> {
-    return usuarioDAO.findAll();
+  async getAll(): Promise<Partial<Usuario>[]> {
+    const usuarios = await usuarioDAO.findAll();
+    return usuarios.map(u => this.sinPassword(u));
   }
 
-  async getById(id: number): Promise<Usuario | null> {
-    return usuarioDAO.findById(id);
+  async getById(id: string): Promise<Partial<Usuario> | null> {
+    const usuario = await usuarioDAO.findById(id);
+    if (!usuario) return null;
+    return this.sinPassword(usuario);
   }
 
-  async getByEmail(email: string): Promise<Usuario[]> {
-    return usuarioDAO.findByEmail(email);
+  async getByEmail(email: string): Promise<Partial<Usuario>[]> {
+    const usuarios = await usuarioDAO.findByEmail(email);
+    return usuarios.map(u => this.sinPassword(u));
   }
 
-  async create(data: CreateUsuarioDTO): Promise<{ id: number; usuario: Partial<Usuario> }> {
+  async create(data: CreateUsuarioDTO): Promise<{ id: string; usuario: Partial<Usuario> }> {
     // Check if email already exists
     const existing = await usuarioDAO.findByCorreo(data.correo);
     if (existing) {
@@ -28,8 +32,12 @@ export class UsuarioService {
     // Hash password
     const hashedPassword = await bcrypt.hash(data.contrasena, 10);
 
-    const id = await usuarioDAO.create({
+    // Generate next ID
+    const id = await usuarioDAO.getNextId();
+
+    await usuarioDAO.create({
       ...data,
+      id,
       contrasena: hashedPassword,
     });
 
@@ -38,20 +46,17 @@ export class UsuarioService {
       throw new Error('Error al crear usuario');
     }
 
-    // Return without password
-    const { contrasena, ...usuarioSinPassword } = usuario;
-
     return {
       id,
-      usuario: usuarioSinPassword,
+      usuario: this.sinPassword(usuario),
     };
   }
 
-  async update(id: number, data: UpdateUsuarioDTO): Promise<boolean> {
+  async update(id: string, data: UpdateUsuarioDTO): Promise<boolean> {
     return usuarioDAO.update(id, data);
   }
 
-  async delete(id: number): Promise<boolean> {
+  async delete(id: string): Promise<boolean> {
     return usuarioDAO.delete(id);
   }
 
@@ -61,7 +66,7 @@ export class UsuarioService {
       throw new Error('Credenciales inválidas');
     }
 
-    const isPasswordValid = await bcrypt.compare(contrasena, usuario.contrasena);
+    const isPasswordValid = await bcrypt.compare(contrasena, (usuario as any).ContrasenaHash);
     if (!isPasswordValid) {
       throw new Error('Credenciales inválidas');
     }
@@ -76,29 +81,31 @@ export class UsuarioService {
       { expiresIn: '24h' }
     );
 
-    const { contrasena: _, ...usuarioSinPassword } = usuario;
-
     return {
       token,
-      usuario: usuarioSinPassword,
+      usuario: this.sinPassword(usuario),
     };
   }
 
-  async validateToken(token: string): Promise<{ id: number; correo: string; rol: RolUsuario }> {
+  async validateToken(token: string): Promise<{ id: string; correo: string; rol: RolUsuario }> {
     try {
-      const decoded = jwt.verify(token, config.jwt.secret) as { id: number; correo: string; rol: RolUsuario };
+      const decoded = jwt.verify(token, config.jwt.secret) as { id: string; correo: string; rol: RolUsuario };
       return decoded;
     } catch {
       throw new Error('Token inválido o expirado');
     }
   }
 
-  async getProfile(id: number): Promise<Partial<Usuario> | null> {
+  async getProfile(id: string): Promise<Partial<Usuario> | null> {
     const usuario = await usuarioDAO.findById(id);
     if (!usuario) return null;
+    return this.sinPassword(usuario);
+  }
 
-    const { contrasena, ...usuarioSinPassword } = usuario;
-    return usuarioSinPassword;
+  private sinPassword(usuario: Usuario): Partial<Usuario> {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { ContrasenaHash, ...sinPassword } = usuario as any;
+    return sinPassword;
   }
 }
 

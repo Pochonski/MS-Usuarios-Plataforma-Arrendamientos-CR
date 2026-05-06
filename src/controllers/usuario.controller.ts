@@ -24,11 +24,7 @@ export class UsuarioController {
   // GET /usuario/:id
   async getById(req: Request, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id, 10);
-      if (isNaN(id)) {
-        res.status(400).json({ error: 'Validation Error', message: 'ID inválido' });
-        return;
-      }
+      const id = req.params.id;
 
       const usuario = await usuarioService.getById(id);
       if (!usuario) {
@@ -62,11 +58,7 @@ export class UsuarioController {
   // PUT /usuario/:id
   async update(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const id = parseInt(req.params.id, 10);
-      if (isNaN(id)) {
-        res.status(400).json({ error: 'Validation Error', message: 'ID inválido' });
-        return;
-      }
+      const id = req.params.id;
 
       // Verificar que el usuario autenticado solo pueda actualizar su propio perfil
       if (req.user && req.user.id !== id) {

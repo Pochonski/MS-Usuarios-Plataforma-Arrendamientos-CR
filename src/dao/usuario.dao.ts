@@ -3,80 +3,84 @@ import { Usuario, CreateUsuarioDTO, UpdateUsuarioDTO } from '../models/types';
 
 export class UsuarioDAO {
   async findAll(): Promise<Usuario[]> {
-    const result = await database.query<any>('SELECT * FROM usuarios');
+    const result = await database.query<any>('SELECT * FROM Usuarios');
     return result;
   }
 
-  async findById(id: number): Promise<Usuario | null> {
-    const result = await database.query<any>('SELECT * FROM usuarios WHERE id = @p0', [id]);
+  async findById(id: string): Promise<Usuario | null> {
+    const result = await database.query<any>('SELECT * FROM Usuarios WHERE Id = @p0', [id]);
     return result[0] || null;
   }
 
   async findByCorreo(correo: string): Promise<Usuario | null> {
-    const result = await database.query<any>('SELECT * FROM usuarios WHERE correo = @p0', [correo]);
+    const result = await database.query<any>('SELECT * FROM Usuarios WHERE Correo = @p0', [correo]);
     return result[0] || null;
   }
 
   async findByEmail(email: string): Promise<Usuario[]> {
-    const result = await database.query<any>('SELECT * FROM usuarios WHERE correo LIKE @p0', [`%${email}%`]);
+    const result = await database.query<any>('SELECT * FROM Usuarios WHERE Correo LIKE @p0', [`%${email}%`]);
     return result;
   }
 
-  async create(data: CreateUsuarioDTO): Promise<number> {
+  async create(data: CreateUsuarioDTO & { id: string }): Promise<string> {
     const result = await database.query<any>(
-      `INSERT INTO usuarios (nombre, correo, contrasena, rol, telefono, propiedades, fechaRegistro)
-       OUTPUT INSERTED.id
+      `INSERT INTO Usuarios (Id, Nombre, Correo, ContrasenaHash, Rol, Telefono, FechaRegistro)
+       OUTPUT INSERTED.Id
        VALUES (@p0, @p1, @p2, @p3, @p4, @p5, GETDATE())`,
       [
+        data.id,
         data.nombre,
         data.correo,
         data.contrasena,
         data.rol,
-        data.telefono,
-        JSON.stringify(data.propiedades || []),
+        data.telefono || null,
       ]
     );
-    return result[0].id;
+    return result[0].Id;
   }
 
-  async update(id: number, data: UpdateUsuarioDTO): Promise<boolean> {
+  async update(id: string, data: UpdateUsuarioDTO): Promise<boolean> {
     const updates: string[] = [];
     const values: any[] = [];
 
     if (data.nombre !== undefined) {
-      updates.push('nombre = @p' + values.length);
+      updates.push('Nombre = @p' + values.length);
       values.push(data.nombre);
     }
     if (data.correo !== undefined) {
-      updates.push('correo = @p' + values.length);
+      updates.push('Correo = @p' + values.length);
       values.push(data.correo);
     }
     if (data.telefono !== undefined) {
-      updates.push('telefono = @p' + values.length);
+      updates.push('Telefono = @p' + values.length);
       values.push(data.telefono);
+    }
+    if (data.avatar !== undefined) {
+      updates.push('Avatar = @p' + values.length);
+      values.push(data.avatar);
     }
 
     if (updates.length === 0) return false;
 
     values.push(id);
     const rowsAffected = await database.execute(
-      `UPDATE usuarios SET ${updates.join(', ')} WHERE id = @p${values.length - 1}`,
+      `UPDATE Usuarios SET ${updates.join(', ')} WHERE Id = @p${values.length - 1}`,
       values
     );
     return rowsAffected > 0;
   }
 
-  async delete(id: number): Promise<boolean> {
-    const rowsAffected = await database.execute('DELETE FROM usuarios WHERE id = @p0', [id]);
+  async delete(id: string): Promise<boolean> {
+    const rowsAffected = await database.execute('DELETE FROM Usuarios WHERE Id = @p0', [id]);
     return rowsAffected > 0;
   }
 
-  async updatePropiedades(id: number, propiedades: number[]): Promise<boolean> {
-    const rowsAffected = await database.execute(
-      'UPDATE usuarios SET propiedades = @p0 WHERE id = @p1',
-      [JSON.stringify(propiedades), id]
+  async getNextId(): Promise<string> {
+    const result = await database.query<any>(
+      "SELECT MAX(CAST(SUBSTRING(Id, 5) AS INT)) AS maxId FROM Usuarios WHERE Id LIKE 'usr-%'"
     );
-    return rowsAffected > 0;
+    const maxId = result[0]?.maxId || 0;
+    return `usr-${String(maxId + 1).padStart(3, '0')}`;
   }
 }
 

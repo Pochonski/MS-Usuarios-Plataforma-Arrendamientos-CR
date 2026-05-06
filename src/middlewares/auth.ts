@@ -5,14 +5,14 @@ import { RolUsuario } from '../models/enums';
 
 export interface AuthRequest extends Request {
   user?: {
-    id: number;
+    id: string;
     correo: string;
     rol: RolUsuario;
   };
 }
 
 export interface JwtPayload {
-  id: number;
+  id: string;
   correo: string;
   rol: RolUsuario;
 }
