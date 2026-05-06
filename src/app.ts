@@ -24,10 +24,14 @@ class App {
     // Security headers with Helmet
     this.app.use(helmet());
 
-    // CORS - restrictive in production
+    // CORS - allow multiple frontend origins
     this.app.use(cors({
       origin: config.nodeEnv === 'production'
-        ? ['https://arrendacr.com', 'https://www.arrendacr.com']
+        ? [
+            'https://arrendacr.com',
+            'https://www.arrendacr.com',
+            'https://agreeable-ground-0b1436910.6.azurestaticapps.net'
+          ]
         : '*',
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
       allowedHeaders: ['Content-Type', 'Authorization'],
