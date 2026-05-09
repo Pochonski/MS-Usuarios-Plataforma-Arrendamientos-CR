@@ -4,12 +4,15 @@ import { CreateUsuarioDTO, UpdateUsuarioDTO } from '../models/types';
 import { AuthRequest } from '../middlewares/auth';
 
 export class UsuarioController {
-  // GET /usuarios (búsqueda por email)
+  // GET /usuarios (búsqueda por email o rol)
   async getAll(req: Request, res: Response): Promise<void> {
     try {
-      const { email } = req.query;
+      const { email, rol } = req.query;
       if (email && typeof email === 'string') {
         const usuarios = await usuarioService.getByEmail(email);
+        res.json(usuarios);
+      } else if (rol && typeof rol === 'string') {
+        const usuarios = await usuarioService.getByRol(rol as 'dueno' | 'inquilino');
         res.json(usuarios);
       } else {
         const usuarios = await usuarioService.getAll();

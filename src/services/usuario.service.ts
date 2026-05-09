@@ -22,6 +22,11 @@ export class UsuarioService {
     return usuarios.map(u => this.sinPassword(u));
   }
 
+  async getByRol(rol: 'dueno' | 'inquilino'): Promise<Partial<Usuario>[]> {
+    const usuarios = await usuarioDAO.findByRol(rol);
+    return usuarios.map(u => this.sinPassword(u));
+  }
+
   async create(data: CreateUsuarioDTO): Promise<{ id: string; usuario: Partial<Usuario> }> {
     // Check if email already exists
     const existing = await usuarioDAO.findByCorreo(data.correo);

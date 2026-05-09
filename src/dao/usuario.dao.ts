@@ -22,6 +22,11 @@ export class UsuarioDAO {
     return result;
   }
 
+  async findByRol(rol: 'dueno' | 'inquilino'): Promise<Usuario[]> {
+    const result = await database.query<any>('SELECT * FROM Usuarios WHERE Rol = ?', [rol]);
+    return result;
+  }
+
   async create(data: CreateUsuarioDTO & { id: string; contrasena?: string | null }): Promise<string> {
     const result = await database.query<any>(
       `INSERT INTO Usuarios (Id, Nombre, Correo, ContrasenaHash, Rol, Telefono, FechaRegistro)
