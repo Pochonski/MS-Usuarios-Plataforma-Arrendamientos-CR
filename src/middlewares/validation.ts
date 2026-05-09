@@ -24,9 +24,9 @@ export const usuarioValidation = {
   create: [
     body('nombre').trim().notEmpty().withMessage('El nombre es requerido'),
     body('correo').isEmail().withMessage('Correo electrónico inválido'),
-    body('contrasena').isLength({ min: 6 }).withMessage('La contraseña debe tener al menos 6 caracteres'),
+    body('contrasena').optional(),
     body('rol').isIn(['dueno', 'inquilino']).withMessage('Rol debe ser "dueno" o "inquilino"'),
-    body('telefono').trim().notEmpty().withMessage('El teléfono es requerido'),
+    body('telefono').optional(),
   ],
   update: [
     body('nombre').optional().trim().notEmpty(),

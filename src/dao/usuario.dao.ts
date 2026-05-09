@@ -8,25 +8,25 @@ export class UsuarioDAO {
   }
 
   async findById(id: string): Promise<Usuario | null> {
-    const result = await database.query<any>('SELECT * FROM Usuarios WHERE Id = @p0', [id]);
+    const result = await database.query<any>('SELECT * FROM Usuarios WHERE Id = ?', [id]);
     return result[0] || null;
   }
 
   async findByCorreo(correo: string): Promise<Usuario | null> {
-    const result = await database.query<any>('SELECT * FROM Usuarios WHERE Correo = @p0', [correo]);
+    const result = await database.query<any>('SELECT * FROM Usuarios WHERE Correo = ?', [correo]);
     return result[0] || null;
   }
 
   async findByEmail(email: string): Promise<Usuario[]> {
-    const result = await database.query<any>('SELECT * FROM Usuarios WHERE Correo LIKE @p0', [`%${email}%`]);
+    const result = await database.query<any>('SELECT * FROM Usuarios WHERE Correo LIKE ?', [`%${email}%`]);
     return result;
   }
 
-  async create(data: CreateUsuarioDTO & { id: string }): Promise<string> {
+  async create(data: CreateUsuarioDTO & { id: string; contrasena?: string | null }): Promise<string> {
     const result = await database.query<any>(
       `INSERT INTO Usuarios (Id, Nombre, Correo, ContrasenaHash, Rol, Telefono, FechaRegistro)
        OUTPUT INSERTED.Id
-       VALUES (@p0, @p1, @p2, @p3, @p4, @p5, GETDATE())`,
+       VALUES (?, ?, ?, ?, ?, ?, GETDATE())`,
       [
         data.id,
         data.nombre,
@@ -44,19 +44,19 @@ export class UsuarioDAO {
     const values: any[] = [];
 
     if (data.nombre !== undefined) {
-      updates.push('Nombre = @p' + values.length);
+      updates.push('Nombre = ?');
       values.push(data.nombre);
     }
     if (data.correo !== undefined) {
-      updates.push('Correo = @p' + values.length);
+      updates.push('Correo = ?');
       values.push(data.correo);
     }
     if (data.telefono !== undefined) {
-      updates.push('Telefono = @p' + values.length);
+      updates.push('Telefono = ?');
       values.push(data.telefono);
     }
     if (data.avatar !== undefined) {
-      updates.push('Avatar = @p' + values.length);
+      updates.push('Avatar = ?');
       values.push(data.avatar);
     }
 
@@ -64,14 +64,14 @@ export class UsuarioDAO {
 
     values.push(id);
     const rowsAffected = await database.execute(
-      `UPDATE Usuarios SET ${updates.join(', ')} WHERE Id = @p${values.length - 1}`,
+      `UPDATE Usuarios SET ${updates.join(', ')} WHERE Id = ?`,
       values
     );
     return rowsAffected > 0;
   }
 
   async delete(id: string): Promise<boolean> {
-    const rowsAffected = await database.execute('DELETE FROM Usuarios WHERE Id = @p0', [id]);
+    const rowsAffected = await database.execute('DELETE FROM Usuarios WHERE Id = ?', [id]);
     return rowsAffected > 0;
   }
 

@@ -42,7 +42,16 @@ export class UsuarioController {
   // POST /usuario/:tempId (registro - tempId es placeholder)
   async create(req: Request, res: Response): Promise<void> {
     try {
-      const data: CreateUsuarioDTO = req.body;
+      // Normalize field names from frontend (Google OAuth sends different names)
+      const rawData = req.body;
+      const data: CreateUsuarioDTO = {
+        nombre: rawData.Nombre || rawData.nombre,
+        correo: rawData.Correo || rawData.email || rawData.correo,
+        contrasena: rawData.Contraseña || rawData.contrasena || '',
+        rol: rawData.Rol || rawData.rol || 'dueno',
+        telefono: rawData.Telefono || rawData.telefono || '',
+      };
+
       const result = await usuarioService.create(data);
       res.status(201).json({ id: result.id, ...result.usuario });
     } catch (error) {

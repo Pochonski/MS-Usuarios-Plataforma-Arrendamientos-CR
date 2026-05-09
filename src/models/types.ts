@@ -5,7 +5,7 @@ export interface Usuario {
   id: string;               // Format: usr-001, usr-002, etc.
   nombre: string;
   correo: string;
-  contrasenaHash: string;
+  contrasenaHash: string | null;
   rol: RolUsuario;
   avatar?: string;
   telefono?: string;
@@ -17,7 +17,7 @@ export interface Usuario {
 export interface CreateUsuarioDTO {
   nombre: string;
   correo: string;
-  contrasena: string;
+  contrasena?: string;
   rol: RolUsuario;
   telefono?: string;
 }

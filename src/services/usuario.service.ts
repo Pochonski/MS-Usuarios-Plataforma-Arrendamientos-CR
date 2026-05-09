@@ -29,8 +29,8 @@ export class UsuarioService {
       throw new Error('El correo electrónico ya está registrado');
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(data.contrasena, 10);
+    // Hash password only if provided (Google OAuth users may have empty password)
+    const hashedPassword = data.contrasena ? await bcrypt.hash(data.contrasena, 10) : undefined;
 
     // Generate next ID
     const id = await usuarioDAO.getNextId();
