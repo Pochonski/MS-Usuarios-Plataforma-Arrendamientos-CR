@@ -21,4 +21,20 @@ export const config = {
   apim: {
     subscriptionKey: process.env.APIM_SUBSCRIPTION_KEY || '',
   },
+
+  rateLimit: {
+    windowMs: parseInt(process.env.RL_WINDOW_MINUTES || '15', 10),
+    auth: {
+      max: parseInt(process.env.RL_AUTH_MAX || '5', 10),
+    },
+    read: {
+      max: parseInt(process.env.RL_READ_MAX || '200', 10),
+    },
+    write: {
+      max: parseInt(process.env.RL_WRITE_MAX || '50', 10),
+    },
+    general: {
+      max: parseInt(process.env.RL_GENERAL_MAX || '100', 10),
+    },
+  },
 };

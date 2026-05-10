@@ -1,7 +1,6 @@
 import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import morgan from 'morgan';
 import { config } from './config/env';
 import { database } from './config/database';
@@ -40,27 +39,6 @@ class App {
 
     // Logging with Morgan
     this.app.use(morgan(config.nodeEnv === 'production' ? 'combined' : 'dev'));
-
-    // Rate limiting - general: 100 requests per 15 minutes
-    const generalLimiter = rateLimit({
-      windowMs: 15 * 60 * 1000,
-      max: 100,
-      standardHeaders: true,
-      legacyHeaders: false,
-      message: { error: 'Demasiadas solicitudes, intenta de nuevo en 15 minutos' },
-    });
-    this.app.use('/api', generalLimiter);
-
-    // Rate limiting - auth routes: 5 requests per 15 minutes
-    const authLimiter = rateLimit({
-      windowMs: 15 * 60 * 1000,
-      max: 5,
-      standardHeaders: true,
-      legacyHeaders: false,
-      message: { error: 'Demasiados intentos de inicio de sesion, intenta de nuevo en 15 minutos' },
-    });
-    this.app.use('/api/auth/login', authLimiter);
-    this.app.use('/api/auth/registro', authLimiter);
 
     // Body parser
     this.app.use(express.json({ limit: '10mb' }));
