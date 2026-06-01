@@ -57,7 +57,7 @@ export class UsuarioController {
       };
 
       const result = await usuarioService.create(data);
-      res.status(201).json({ id: result.id, ...result.usuario });
+      res.status(201).json(result.usuario);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Error desconocido';
       if (message.includes('ya está registrado')) {
