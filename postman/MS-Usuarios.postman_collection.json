@@ -1,13 +1,13 @@
 {
 	"info": {
-		"name": "MS-Usuarios - Plataforma Arrendamientos CR",
-		"description": "Colección de endpoints para el microservicio de Usuarios. Todos los requests incluyen headers de APIM para validación de seguridad mTLS.",
+		"name": "MS-Usuarios - Plataforma Arrendamientos CR (PRODUCCIÓN)",
+		"description": "Colección de endpoints para el microservicio de Usuarios. Configurada para producción vía Azure APIM (plataforma-arrendamientos-api). Incluye headers de seguridad mTLS y subscription key.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"variable": [
 		{
 			"key": "baseUrl",
-			"value": "{{baseUrl}}/api",
+			"value": "https://plataforma-arrendamientos-api.azure-api.net",
 			"type": "string"
 		},
 		{
@@ -46,9 +46,9 @@
 						}
 					],
 					"url": {
-						"raw": "{{baseUrl}}/api/health",
+						"raw": "{{baseUrl}}/health",
 						"host": ["{{baseUrl}}"],
-						"path": ["api", "health"]
+						"path": ["health"]
 					},
 					"description": "Health check endpoint - skips APIM cert validation"
 				},
@@ -94,9 +94,9 @@
 							"raw": "{\n    \"correo\": \"test@example.com\",\n    \"contrasena\": \"password123\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/auth/login",
+							"raw": "{{baseUrl}}/auth/login",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "login"]
+							"path": ["auth", "login"]
 						},
 						"description": "Login con email y contraseña"
 					},
@@ -146,9 +146,9 @@
 							"raw": "{\n    \"nombre\": \"Juan Pérez\",\n    \"correo\": \"juanperez@example.com\",\n    \"contrasena\": \"Password123!\",\n    \"rol\": \"dueno\",\n    \"telefono\": \"88888888\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/auth/registro",
+							"raw": "{{baseUrl}}/auth/registro",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "registro"]
+							"path": ["auth", "registro"]
 						},
 						"description": "Registro de nuevo usuario"
 					},
@@ -190,9 +190,9 @@
 							"raw": "{\n    \"googleToken\": \"{{googleToken}}\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/auth/google",
+							"raw": "{{baseUrl}}/auth/google",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "google"]
+							"path": ["auth", "google"]
 						},
 						"description": "Login con Google OAuth"
 					},
@@ -230,9 +230,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{baseUrl}}/api/auth/profile",
+							"raw": "{{baseUrl}}/auth/profile",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "profile"]
+							"path": ["auth", "profile"]
 						},
 						"description": "Obtener perfil del usuario autenticado"
 					},
@@ -274,9 +274,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{baseUrl}}/api/usuarios?email={{email}}&rol={{rol}}",
+							"raw": "{{baseUrl}}/usuarios?email={{email}}&rol={{rol}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "usuarios"],
+							"path": ["usuarios"],
 							"query": [
 								{
 									"key": "email",
@@ -321,9 +321,9 @@
 							}
 						],
 						"url": {
-							"raw": "{{baseUrl}}/api/usuarios/{{userId}}",
+							"raw": "{{baseUrl}}/usuario/{{userId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "usuarios", "{{userId}}"]
+							"path": ["usuario", "{{userId}}"]
 						},
 						"description": "Obtener usuario por ID"
 					},
@@ -366,9 +366,9 @@
 							"raw": "{\n    \"nombre\": \"Juan Actualizado\",\n    \"telefono\": \"99999999\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/usuarios/{{userId}}",
+							"raw": "{{baseUrl}}/usuario/{{userId}}",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "usuarios", "{{userId}}"]
+							"path": ["usuario", "{{userId}}"]
 						},
 						"description": "Actualizar usuario (solo puede actualizar su propio perfil)"
 					},
