@@ -29,6 +29,9 @@ export const config = {
 
   apim: {
     subscriptionKey: process.env.APIM_SUBSCRIPTION_KEY || '',
+    clientCertThumbprint: process.env.APIM_CLIENT_CERT_THUMBPRINT || '',
+    validateClientCert: process.env.APIM_VALIDATE_CLIENT_CERT === 'true',
+    internalApiUrl: process.env.APIM_INTERNAL_API_URL || '',
   },
 
   google: {

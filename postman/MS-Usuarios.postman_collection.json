@@ -1,0 +1,391 @@
+{
+	"info": {
+		"name": "MS-Usuarios - Plataforma Arrendamientos CR",
+		"description": "Colección de endpoints para el microservicio de Usuarios. Todos los requests incluyen headers de APIM para validación de seguridad mTLS.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "{{baseUrl}}/api",
+			"type": "string"
+		},
+		{
+			"key": "subscriptionKey",
+			"value": "{{subscriptionKey}}",
+			"type": "string"
+		},
+		{
+			"key": "authToken",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{authToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"request": {
+				"name": "Health Check",
+				"request": {
+					"method": "GET",
+					"header": [
+						{
+							"key": "Ocp-Apim-Subscription-Key",
+							"value": "{{subscriptionKey}}",
+							"type": "text"
+						}
+					],
+					"url": {
+						"raw": "{{baseUrl}}/api/health",
+						"host": ["{{baseUrl}}"],
+						"path": ["api", "health"]
+					},
+					"description": "Health check endpoint - skips APIM cert validation"
+				},
+				"event": [
+					{
+						"listen": "test",
+						"script": {
+							"exec": [
+								"pm.test('Status code is 200', function() {",
+								"    pm.response.to.have.status(200);",
+								"});",
+								"pm.test('Response has status', function() {",
+								"    var jsonData = pm.response.json();",
+								"    pm.expect(jsonData).to.have.property('status');",
+								"});"
+							]
+						}
+					}
+				]
+			}
+		},
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "POST /auth/login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Ocp-Apim-Subscription-Key",
+								"value": "{{subscriptionKey}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"correo\": \"test@example.com\",\n    \"contrasena\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						},
+						"description": "Login con email y contraseña"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function() {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has token', function() {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('token');",
+									"});",
+									"pm.test('Response has usuario', function() {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('usuario');",
+									"});",
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('authToken', jsonData.token);",
+									"}"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /auth/registro",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Ocp-Apim-Subscription-Key",
+								"value": "{{subscriptionKey}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"nombre\": \"Juan Pérez\",\n    \"correo\": \"juanperez@example.com\",\n    \"contrasena\": \"Password123!\",\n    \"rol\": \"dueno\",\n    \"telefono\": \"88888888\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/registro",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "registro"]
+						},
+						"description": "Registro de nuevo usuario"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 201', function() {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test('Response has id', function() {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /auth/google",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Ocp-Apim-Subscription-Key",
+								"value": "{{subscriptionKey}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"googleToken\": \"{{googleToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/google",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "google"]
+						},
+						"description": "Login con Google OAuth"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function() {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has token', function() {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('token');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /auth/profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Ocp-Apim-Subscription-Key",
+								"value": "{{subscriptionKey}}",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "profile"]
+						},
+						"description": "Obtener perfil del usuario autenticado"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function() {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response has id', function() {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"});",
+									"pm.test('Response has correo', function() {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('correo');",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Usuarios",
+			"item": [
+				{
+					"name": "GET /usuarios",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Ocp-Apim-Subscription-Key",
+								"value": "{{subscriptionKey}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/usuarios?email={{email}}&rol={{rol}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "usuarios"],
+							"query": [
+								{
+									"key": "email",
+									"value": "{{email}}",
+									"description": "Filtrar por email"
+								},
+								{
+									"key": "rol",
+									"value": "{{rol}}",
+									"description": "Filtrar por rol (dueno|inquilino)"
+								}
+							]
+						},
+						"description": "Listar usuarios - opcionalmente filtrar por email o rol"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function() {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Response is array', function() {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /usuarios/:id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Ocp-Apim-Subscription-Key",
+								"value": "{{subscriptionKey}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/usuarios/{{userId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "usuarios", "{{userId}}"]
+						},
+						"description": "Obtener usuario por ID"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 404', function() {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PUT /usuarios/:id",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Ocp-Apim-Subscription-Key",
+								"value": "{{subscriptionKey}}",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"nombre\": \"Juan Actualizado\",\n    \"telefono\": \"99999999\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/usuarios/{{userId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "usuarios", "{{userId}}"]
+						},
+						"description": "Actualizar usuario (solo puede actualizar su propio perfil)"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200 or 403', function() {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 403]);",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		}
+	]
+}

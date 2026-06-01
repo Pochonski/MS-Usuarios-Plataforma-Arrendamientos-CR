@@ -238,6 +238,10 @@ npm start
 | `RL_AUTH_MAX` | Requests permitidos para auth (default: 5) | No |
 | `RL_READ_MAX` | Requests permitidos para reads (default: 200) | No |
 | `RL_WRITE_MAX` | Requests permitidos para writes (default: 50) | No |
+| `APIM_SUBSCRIPTION_KEY` | Subscription key de Azure APIM | En producción |
+| `APIM_CLIENT_CERT_THUMBPRINT` | Thumbprint del certificado de APIM | En producción |
+| `APIM_VALIDATE_CLIENT_CERT` | Habilitar validación mTLS (`true`/`false`) | No |
+| `APIM_INTERNAL_API_URL` | URL interna del API en APIM | No |
 
 ## Seguridad
 
@@ -247,6 +251,51 @@ npm start
 - **JWT**: Tokens firmados con expiración de 24h
 - **bcrypt**: Hash de contraseñas con salt rounds 10
 - **Trust Proxy**: Habilitado para correcto funcionamiento detrás de APIM
+
+## Azure APIM Integration
+
+El microservicio está diseñado para ser publicado exclusivamente a través de Azure API Management (APIM).
+
+### Headers de Seguridad Requeridos
+
+| Header | Descripción |
+|--------|-------------|
+| `Ocp-Apim-Subscription-Key` | Subscription key de APIM para validar acceso |
+| `X-ARR-ClientCert` | Certificado de cliente para mTLS (en producción) |
+
+### Variables de Entorno APIM
+
+| Variable | Descripción |
+|----------|-------------|
+| `APIM_SUBSCRIPTION_KEY` | Subscription key de APIM |
+| `APIM_CLIENT_CERT_THUMBPRINT` | Thumbprint del certificado de APIM |
+| `APIM_VALIDATE_CLIENT_CERT` | Habilitar validación de certificado (`true`/`false`) |
+| `APIM_INTERNAL_API_URL` | URL interna del API en APIM |
+
+### Flujo de Seguridad
+
+```
+Cliente → APIM → (validación mTLS + subscription key) → MS-Usuarios
+```
+
+1. APIM valida subscription del cliente
+2. APIM forwardea request con `X-ARR-ClientCert` header conteniendo el cert
+3. MS-Usuarios valida thumbprint del certificado
+4. Si validación falla → 403 Forbidden
+
+### Desarrollo Local
+
+En desarrollo (`NODE_ENV=development`), si `APIM_VALIDATE_CLIENT_CERT=false`:
+- Se omite la validación del certificado de cliente
+- Solo se valida el subscription key
+- Health check endpoint (`/api/health`) omite toda validación APIM
+
+### Colección Postman
+
+Ver `postman/MS-Usuarios.postman_collection.json` con:
+- Requests pre-configurados con headers de APIM
+- Variables de entorno para desarrollo local
+- Tests de validación de respuesta
 
 ## Tests
 

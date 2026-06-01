@@ -6,6 +6,7 @@ import { config } from './config/env';
 import { database } from './config/database';
 import routes from './routes';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
+import { apimAuthSkipHealth } from './middlewares/apimAuth';
 
 class App {
   public app: Application;
@@ -37,7 +38,7 @@ class App {
         : '*',
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
       allowedHeaders: ['Content-Type', 'Authorization', 'ocp-apim-subscription-key'],
-      credentials: true,
+      credentials: config.nodeEnv === 'production',
     }));
 
     // Logging with Morgan
@@ -46,6 +47,9 @@ class App {
     // Body parser
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+    // APIM authentication middleware (validates subscription key + client cert)
+    this.app.use(apimAuthSkipHealth);
   }
 
   private configureRoutes(): void {

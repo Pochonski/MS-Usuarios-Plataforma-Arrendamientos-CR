@@ -16,7 +16,7 @@ router.get('/usuarios', rateLimitRead, optionalAuth, usuarioController.getAll);
 router.get('/usuario/:id', rateLimitRead, optionalAuth, usuarioController.getById);
 
 // Write endpoints - moderate rate limiting
-router.put('/usuario/:id', rateLimitWrite, authenticate, validate, usuarioController.update);
+router.put('/usuario/:id', rateLimitWrite, authenticate, usuarioValidation.update, validate, usuarioController.update);
 
 // Profile (protected) - read rate limiting
 router.get('/auth/profile', rateLimitRead, authenticate, usuarioController.getProfile);

@@ -1,110 +1,71 @@
-# Migraciones de Base de Datos - Microservicio Usuarios
+# Migraciones de Base de Datos - MS-Usuarios
 
 ## Resumen
 
-El microservicio de usuarios (`Arrendamientos.Users.Api`) usa Entity Framework Core con SQL Server (Azure SQL Database).
+El microservicio de usuarios usa:
+- **Runtime**: Node.js con TypeScript
+- **Driver**: mssql (tedious) para Azure SQL Database
+- **ORM**: Sin ORM - queries directos con parameterized queries
+- **ID Generation**: Tabla Sequences para IDs atómicos (formato: usr-001, usr-002)
 
 ## Modelo de Datos
 
-**Tabla: Usuarios**
+### Tabla: Usuarios
 
 | Columna | Tipo | Descripción |
 |---------|------|-------------|
 | Id | nvarchar(50) | PK, formato: usr-001, usr-002, etc. |
 | Nombre | nvarchar(100) | Nombre completo del usuario |
 | Correo | nvarchar(255) | Email único del usuario |
-| ContrasenaHash | nvarchar(max) | Hash BCrypt de la contraseña |
+| ContrasenaHash | nvarchar(max) | Hash bcrypt (NULL para OAuth) |
 | Rol | nvarchar(20) | "dueno" o "inquilino" |
 | Avatar | nvarchar(500) | URL de avatar (opcional) |
 | Telefono | nvarchar(20) | Teléfono (opcional) |
+| GoogleId | nvarchar(255) | ID de Google para OAuth (opcional) |
 | FechaRegistro | datetime2 | Fecha de registro |
 | UltimoLogin | datetime2 | Último login (opcional) |
 
-## Crear nueva migración
+### Tabla: Sequences (auxiliar)
 
-```bash
-cd src/src/Arrendamientos.Users.Api
-dotnet ef migrations add NombreMigracion
-```
+| Columna | Tipo | Descripción |
+|---------|------|-------------|
+| Name | nvarchar(50) | PK, nombre de la secuencia |
+| CurrentValue | int | Valor actual |
 
-## Generar script SQL (sin ejecutar)
+## Ejecutar Migraciones
 
-```bash
-cd src/src/Arrendamientos.Users.Api
-dotnet ef migrations script
-```
-
-## Aplicar migraciones manualmente (Azure Portal)
+### Azure Portal (Query Editor)
 
 1. Ir a [Azure Portal](https://portal.azure.com)
 2. Buscar `arrendamientos_db`
 3. Click en **Query editor (preview)**
-4. Ejecutar el script SQL
+4. Ejecutar el script SQL de migración
 
-### Script SQL de migración
+### Azure CLI
 
-```sql
--- Tabla de control de migraciones
-IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
-BEGIN
-    CREATE TABLE [__EFMigrationsHistory] (
-        [MigrationId] nvarchar(150) NOT NULL,
-        [ProductVersion] nvarchar(32) NOT NULL,
-        CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY ([MigrationId])
-    );
-END;
-GO
-
--- Tabla Usuarios
-CREATE TABLE [Usuarios] (
-    [Id] nvarchar(50) NOT NULL,
-    [Nombre] nvarchar(100) NOT NULL,
-    [Correo] nvarchar(255) NOT NULL,
-    [ContrasenaHash] nvarchar(max) NOT NULL,
-    [Rol] nvarchar(20) NOT NULL,
-    [Avatar] nvarchar(500) NULL,
-    [Telefono] nvarchar(20) NULL,
-    [FechaRegistro] datetime2 NOT NULL,
-    [UltimoLogin] datetime2 NULL,
-    CONSTRAINT [PK_Usuarios] PRIMARY KEY ([Id])
-);
-GO
-
--- Índice único para correo
-CREATE UNIQUE INDEX [IX_Usuarios_Correo] ON [Usuarios] ([Correo]);
-GO
-
--- Registrar migración
-INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-VALUES (N'20260505234529_InitialCreate', N'8.0.0');
-GO
+```bash
+# Ejecutar script SQL
+sqlcmd -S arrendamientoscr.database.windows.net -d arrendamientos_db -U <user> -P <password> -i sql/schema.sql
 ```
 
-## Aplicar migraciones automáticamente (desde código)
+### Desde código (desarrollo)
 
-El API ejecuta `db.Database.Migrate()` automáticamente al iniciar en `Program.cs`:
+El proyecto no tiene migrations automáticas. Para desarrollo:
 
-```csharp
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
-}
-```
+1. Copiar `.env.example` a `.env`
+2. Configurar credenciales de Azure SQL
+3. Ejecutar `npm run dev` - el schema se aplica manualmente
 
-Para que funcione, actualizar el `connectionString` en `appsettings.Development.json`:
+## Schema SQL
 
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=arrendamientoscr.database.windows.net;Database=arrendamientos_db;[AUTH];Encrypt=true;TrustServerCertificate=true;"
-  }
-}
-```
+El schema completo está en `sql/schema.sql`. Incluye:
+- Tabla Usuarios (este microservicio)
+- Tablas de otros microservicios: Propiedades, Invitaciones, Contratos, Pagos, Notificaciones, Conversaciones, Mensajes
+- Tabla Sequences para generación de IDs
 
-## Notas importantes
+## Notas Importantes
 
-- **No usar `AUTO_INCREMENT`** - SQL Server usa `IDENTITY(1,1)`
-- **No usar `JSON` directo** - Usar `nvarchar(max)` para JSON
+- **No usar AUTO_INCREMENT** - SQL Server usa `IDENTITY(1,1)` o Sequences
+- **Parámetros siempre escapados** - El DAO usa parameterized queries para prevenir SQL injection
 - **Id es string** - Formato `usr-001`, `usr-002`, etc.
-- **Autenticación AAD** - Puede fallar con sqlcmd local, usar Azure Portal Query Editor
+- **CASCADE deletes** - Las foreign keys usan ON DELETE CASCADE

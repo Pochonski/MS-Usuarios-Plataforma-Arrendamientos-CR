@@ -31,6 +31,7 @@ Este microservicio es responsable de:
     │   ├── enums.ts                 # RolUsuario enum
     │   └── types.ts                 # Interfaces y DTOs
     ├── middlewares/
+    │   ├── apimAuth.ts              # Azure APIM security (mTLS + subscription key)
     │   ├── auth.ts                 # JWT authenticate, optionalAuth
     │   ├── errorHandler.ts         # Error handling centralizado
     │   ├── rateLimit.ts            # express-rate-limit config
@@ -135,6 +136,7 @@ interface GoogleUserInfo {
 5. **bcrypt**: Hash de contraseñas con salt rounds 10
 6. **express-validator**: Validación y sanitización de inputs
 7. **Rate Limiting**: Protección contra ataques de fuerza bruta
+8. **APIM Auth**: Validación de subscription key + certificado de cliente mTLS
 
 ## Variables de Entorno Requeridas
 
