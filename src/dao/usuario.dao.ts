@@ -28,7 +28,7 @@ export class UsuarioDAO {
   }
 
   async create(data: CreateUsuarioDTO & { id: string; contrasena?: string | null }): Promise<string> {
-    const result = await database.query<Usuario>(
+    const result = await database.query<{ Id: string }>(
       `INSERT INTO Usuarios (Id, Nombre, Correo, ContrasenaHash, Rol, Telefono, FechaRegistro)
        OUTPUT INSERTED.Id
        VALUES (?, ?, ?, ?, ?, ?, GETDATE())`,
@@ -82,7 +82,7 @@ export class UsuarioDAO {
 
   async getNextId(): Promise<string> {
     // Use atomic sequence table to avoid race conditions
-    const result = await database.query<Usuario>(
+    const result = await database.query<{ CurrentValue: number }>(
       `UPDATE Sequences SET CurrentValue = CurrentValue + 1 OUTPUT INSERTED.CurrentValue WHERE Name = 'UsuarioId'`
     );
     const nextValue = result[0]?.CurrentValue || 1;

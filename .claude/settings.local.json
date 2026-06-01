@@ -4,7 +4,8 @@
       "Bash(npm install:*)",
       "Bash(npm run:*)",
       "Bash(rm:*)",
-      "Bash(curl -s -X POST http://localhost:3000/api/auth/login -H 'Content-Type: application/json' -d '{\"correo\":\"test@test.com\",\"contrasena\":\"123456\"}')"
+      "Bash(curl -s -X POST http://localhost:3000/api/auth/login -H 'Content-Type: application/json' -d '{\"correo\":\"test@test.com\",\"contrasena\":\"123456\"}')",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }

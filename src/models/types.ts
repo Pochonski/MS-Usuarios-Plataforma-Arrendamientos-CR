@@ -1,19 +1,20 @@
 import { RolUsuario } from './enums';
 
-// User model (matches EF Core entity)
+// User model (matches SQL column names)
 export interface Usuario {
-  id: string;               // Format: usr-001, usr-002, etc.
-  nombre: string;
-  correo: string;
-  ContrasenaHash: string | null;  // PascalCase to match SQL column
-  rol: RolUsuario;
-  avatar?: string;
-  telefono?: string;
-  fechaRegistro: Date;
-  ultimoLogin?: Date;
+  Id: string;               // Format: usr-001, usr-002, etc.
+  Nombre: string;
+  Correo: string;
+  ContrasenaHash: string | null;
+  Rol: RolUsuario;
+  Avatar?: string;
+  Telefono?: string;
+  FechaRegistro: Date;
+  UltimoLogin?: Date;
+  GoogleId?: string;
 }
 
-// DTOs for API requests
+// DTOs for API requests (camelCase for external API)
 export interface CreateUsuarioDTO {
   nombre: string;
   correo: string;

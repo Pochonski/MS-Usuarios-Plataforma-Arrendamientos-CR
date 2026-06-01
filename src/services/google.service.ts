@@ -1,4 +1,4 @@
-import { OAuth2Client, TokenPayload } from 'google-auth-library';
+import { OAuth2Client } from 'google-auth-library';
 import { config } from '../config/env';
 import { GoogleUserInfo } from '../models/types';
 
@@ -16,6 +16,9 @@ export async function verifyGoogleToken(token: string): Promise<GoogleUserInfo> 
   });
 
   const payload = ticket.getPayload();
+  if (!payload) {
+    throw new Error('Invalid token from Google');
+  }
   if (!payload.email) {
     throw new Error('Email not provided by Google');
   }
@@ -27,3 +30,7 @@ export async function verifyGoogleToken(token: string): Promise<GoogleUserInfo> 
     picture: payload.picture,
   };
 }
+
+export const googleService = {
+  verifyToken: verifyGoogleToken,
+};
