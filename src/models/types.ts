@@ -44,3 +44,15 @@ export interface GoogleUserInfo {
   name: string;
   picture?: string;
 }
+
+// API response type (camelCase for external API)
+export interface UsuarioResponse {
+  id: string;
+  nombre: string;
+  correo: string;
+  rol: RolUsuario;
+  telefono?: string;
+  avatar?: string;
+  fechaRegistro: Date;
+  ultimoLogin?: Date;
+}

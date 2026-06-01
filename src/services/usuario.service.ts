@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { usuarioDAO } from '../dao/usuario.dao';
-import { CreateUsuarioDTO, UpdateUsuarioDTO, Usuario, GoogleUserInfo } from '../models/types';
+import { CreateUsuarioDTO, UpdateUsuarioDTO, Usuario, GoogleUserInfo, UsuarioResponse } from '../models/types';
 import { config } from '../config/env';
 import { RolUsuario } from '../models/enums';
 
@@ -18,28 +18,28 @@ const toApiResponse = (usuario: Usuario) => ({
 });
 
 export class UsuarioService {
-  async getAll(): Promise<Partial<Usuario>[]> {
+  async getAll(): Promise<UsuarioResponse[]> {
     const usuarios = await usuarioDAO.findAll();
     return usuarios.map(u => this.sinPassword(u));
   }
 
-  async getById(id: string): Promise<Partial<Usuario> | null> {
+  async getById(id: string): Promise<UsuarioResponse | null> {
     const usuario = await usuarioDAO.findById(id);
     if (!usuario) return null;
     return this.sinPassword(usuario);
   }
 
-  async getByEmail(email: string): Promise<Partial<Usuario>[]> {
+  async getByEmail(email: string): Promise<UsuarioResponse[]> {
     const usuarios = await usuarioDAO.findByEmail(email);
     return usuarios.map(u => this.sinPassword(u));
   }
 
-  async getByRol(rol: 'dueno' | 'inquilino'): Promise<Partial<Usuario>[]> {
+  async getByRol(rol: 'dueno' | 'inquilino'): Promise<UsuarioResponse[]> {
     const usuarios = await usuarioDAO.findByRol(rol);
     return usuarios.map(u => this.sinPassword(u));
   }
 
-  async create(data: CreateUsuarioDTO): Promise<{ id: string; usuario: Partial<Usuario> }> {
+  async create(data: CreateUsuarioDTO): Promise<{ id: string; usuario: UsuarioResponse }> {
     // Check if email already exists
     const existing = await usuarioDAO.findByCorreo(data.correo);
     if (existing) {
@@ -80,7 +80,7 @@ export class UsuarioService {
     return usuarioDAO.delete(id);
   }
 
-  async login(correo: string, contrasena: string): Promise<{ token: string; usuario: Partial<Usuario> }> {
+  async login(correo: string, contrasena: string): Promise<{ token: string; usuario: UsuarioResponse }> {
     const usuario = await usuarioDAO.findByCorreo(correo);
     if (!usuario) {
       throw new Error('Credenciales inválidas');
@@ -112,13 +112,13 @@ export class UsuarioService {
     };
   }
 
-  async getProfile(id: string): Promise<Partial<Usuario> | null> {
+  async getProfile(id: string): Promise<UsuarioResponse | null> {
     const usuario = await usuarioDAO.findById(id);
     if (!usuario) return null;
     return this.sinPassword(usuario);
   }
 
-  async googleLogin(googleUser: GoogleUserInfo): Promise<{ token: string; usuario: Partial<Usuario> }> {
+  async googleLogin(googleUser: GoogleUserInfo): Promise<{ token: string; usuario: UsuarioResponse }> {
     // Buscar usuario por email de Google
     let usuario = await usuarioDAO.findByCorreo(googleUser.email);
 
@@ -150,7 +150,7 @@ export class UsuarioService {
     return { token, usuario: this.sinPassword(usuario) };
   }
 
-  private sinPassword(usuario: Usuario): Partial<Usuario> {
+  private sinPassword(usuario: Usuario): UsuarioResponse {
     const { ContrasenaHash, ...rest } = usuario;
     // Convert to camelCase for API response
     return {
