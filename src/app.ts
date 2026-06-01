@@ -23,6 +23,9 @@ class App {
     // Security headers with Helmet
     this.app.use(helmet());
 
+    // Trust proxy for correct IP detection behind load balancers/APIM
+    this.app.set('trust proxy', 1);
+
     // CORS - allow multiple frontend origins
     this.app.use(cors({
       origin: config.nodeEnv === 'production'

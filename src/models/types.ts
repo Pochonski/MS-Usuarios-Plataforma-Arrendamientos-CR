@@ -5,7 +5,7 @@ export interface Usuario {
   id: string;               // Format: usr-001, usr-002, etc.
   nombre: string;
   correo: string;
-  contrasenaHash: string | null;
+  ContrasenaHash: string | null;  // PascalCase to match SQL column
   rol: RolUsuario;
   avatar?: string;
   telefono?: string;
@@ -34,4 +34,12 @@ export interface ApiError {
   error: string;
   message: string;
   statusCode: number;
+}
+
+// Google OAuth user info from verified token
+export interface GoogleUserInfo {
+  googleId: string;
+  email: string;
+  name: string;
+  picture?: string;
 }

@@ -8,6 +8,11 @@ const keyGenerator = (req: Request): string => generateRateLimitKey(req);
 
 const skip = (req: Request): boolean => shouldSkipRateLimit(req);
 
+const getRetryMessage = (): string => {
+  const minutes = config.rateLimit.windowMs;
+  return `Demasiadas solicitudes, intenta de nuevo en ${minutes} minutos`;
+};
+
 const handleRateLimit: RateLimitExceededEventHandler = (req, res) => {
   res.status(429).json({
     error: 'Too Many Requests',
@@ -27,7 +32,7 @@ export const rateLimitAuth: RateLimitRequestHandler = rateLimit({
   ...baseOptions,
   windowMs: config.rateLimit.windowMs * 60 * 1000,
   max: config.rateLimit.auth.max,
-  message: { error: 'Demasiados intentos de autenticacion, intenta de nuevo en 15 minutos' },
+  message: { error: `Demasiados intentos de autenticacion, intenta de nuevo en ${config.rateLimit.windowMs} minutos` },
   handler: handleRateLimit,
 });
 
@@ -35,7 +40,7 @@ export const rateLimitRead: RateLimitRequestHandler = rateLimit({
   ...baseOptions,
   windowMs: config.rateLimit.windowMs * 60 * 1000,
   max: config.rateLimit.read.max,
-  message: { error: 'Demasiadas solicitudes de lectura, intenta de nuevo en 15 minutos' },
+  message: { error: `Demasiadas solicitudes de lectura, intenta de nuevo en ${config.rateLimit.windowMs} minutos` },
   handler: handleRateLimit,
 });
 
@@ -43,7 +48,7 @@ export const rateLimitWrite: RateLimitRequestHandler = rateLimit({
   ...baseOptions,
   windowMs: config.rateLimit.windowMs * 60 * 1000,
   max: config.rateLimit.write.max,
-  message: { error: 'Demasiadas solicitudes de escritura, intenta de nuevo en 15 minutos' },
+  message: { error: `Demasiadas solicitudes de escritura, intenta de nuevo en ${config.rateLimit.windowMs} minutos` },
   handler: handleRateLimit,
 });
 
@@ -51,6 +56,6 @@ export const rateLimitGeneral: RateLimitRequestHandler = rateLimit({
   ...baseOptions,
   windowMs: config.rateLimit.windowMs * 60 * 1000,
   max: config.rateLimit.general.max,
-  message: { error: 'Demasiadas solicitudes, intenta de nuevo en 15 minutos' },
+  message: { error: `Demasiadas solicitudes, intenta de nuevo en ${config.rateLimit.windowMs} minutos` },
   handler: handleRateLimit,
 });

@@ -1,9 +1,8 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { usuarioDAO } from '../dao/usuario.dao';
-import { CreateUsuarioDTO, UpdateUsuarioDTO, Usuario } from '../models/types';
+import { CreateUsuarioDTO, UpdateUsuarioDTO, Usuario, GoogleUserInfo } from '../models/types';
 import { config } from '../config/env';
-import { RolUsuario } from '../models/enums';
 
 export class UsuarioService {
   async getAll(): Promise<Partial<Usuario>[]> {
@@ -72,7 +71,12 @@ export class UsuarioService {
       throw new Error('Credenciales inválidas');
     }
 
-    const isPasswordValid = await bcrypt.compare(contrasena, (usuario as any).ContrasenaHash);
+    // OAuth users cannot login with password
+    if (!usuario.ContrasenaHash) {
+      throw new Error('Credenciales inválidas');
+    }
+
+    const isPasswordValid = await bcrypt.compare(contrasena, usuario.ContrasenaHash);
     if (!isPasswordValid) {
       throw new Error('Credenciales inválidas');
     }
@@ -93,24 +97,45 @@ export class UsuarioService {
     };
   }
 
-  async validateToken(token: string): Promise<{ id: string; correo: string; rol: RolUsuario }> {
-    try {
-      const decoded = jwt.verify(token, config.jwt.secret) as { id: string; correo: string; rol: RolUsuario };
-      return decoded;
-    } catch {
-      throw new Error('Token inválido o expirado');
-    }
-  }
-
   async getProfile(id: string): Promise<Partial<Usuario> | null> {
     const usuario = await usuarioDAO.findById(id);
     if (!usuario) return null;
     return this.sinPassword(usuario);
   }
 
+  async googleLogin(googleUser: GoogleUserInfo): Promise<{ token: string; usuario: Partial<Usuario> }> {
+    // Buscar usuario por email de Google
+    let usuario = await usuarioDAO.findByCorreo(googleUser.email);
+
+    if (!usuario) {
+      // Crear nuevo usuario Google
+      const id = await usuarioDAO.getNextId();
+      await usuarioDAO.create({
+        nombre: googleUser.name,
+        correo: googleUser.email,
+        contrasena: null,  // Google users no password
+        rol: 'dueno',
+        telefono: null,
+      });
+      usuario = await usuarioDAO.findById(id);
+    }
+
+    if (!usuario) {
+      throw new Error('Error al procesar usuario de Google');
+    }
+
+    // Generar JWT
+    const token = jwt.sign(
+      { id: usuario.id, correo: usuario.correo, rol: usuario.rol },
+      config.jwt.secret,
+      { expiresIn: '24h' }
+    );
+
+    return { token, usuario: this.sinPassword(usuario) };
+  }
+
   private sinPassword(usuario: Usuario): Partial<Usuario> {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { ContrasenaHash, ...sinPassword } = usuario as any;
+    const { ContrasenaHash, ...sinPassword } = usuario;
     return sinPassword;
   }
 }

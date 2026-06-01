@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { usuarioService } from '../services/usuario.service';
+import { googleService } from '../services/google.service';
 import { CreateUsuarioDTO, UpdateUsuarioDTO } from '../models/types';
 import { AuthRequest } from '../middlewares/auth';
 
@@ -42,7 +43,7 @@ export class UsuarioController {
     }
   }
 
-  // POST /usuario/:tempId (registro - tempId es placeholder)
+  // POST /usuario (registro)
   async create(req: Request, res: Response): Promise<void> {
     try {
       // Normalize field names from frontend (Google OAuth sends different names)
@@ -130,6 +131,20 @@ export class UsuarioController {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Error desconocido';
       res.status(500).json({ error: 'Server Error', message });
+    }
+  }
+
+  // POST /auth/google
+  async googleLogin(req: Request, res: Response): Promise<void> {
+    try {
+      const { googleToken } = req.body;
+
+      const googleUser = await googleService.verifyToken(googleToken);
+      const result = await usuarioService.googleLogin(googleUser);
+      res.json(result);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Error desconocido';
+      res.status(401).json({ error: 'Unauthorized', message });
     }
   }
 }

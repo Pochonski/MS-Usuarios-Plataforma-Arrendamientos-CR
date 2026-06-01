@@ -22,15 +22,34 @@ export const usuarioValidation = {
     body('contrasena').notEmpty().withMessage('La contraseña es requerida'),
   ],
   create: [
-    body('nombre').trim().notEmpty().withMessage('El nombre es requerido'),
+    body('nombre')
+      .trim()
+      .isLength({ min: 1, max: 100 })
+      .withMessage('El nombre debe tener entre 1 y 100 caracteres'),
     body('correo').isEmail().withMessage('Correo electrónico inválido'),
     body('contrasena').optional(),
-    body('rol').isIn(['dueno', 'inquilino']).withMessage('Rol debe ser "dueno" o "inquilino"'),
-    body('telefono').optional(),
+    body('rol')
+      .isIn(['dueno', 'inquilino'])
+      .withMessage('Rol debe ser "dueno" o "inquilino"'),
+    body('telefono')
+      .optional()
+      .matches(/^\+?[0-9]{8,12}$/)
+      .withMessage('Teléfono inválido (8-12 dígitos, opcional +506)'),
   ],
   update: [
-    body('nombre').optional().trim().notEmpty(),
-    body('correo').optional().isEmail(),
-    body('telefono').optional().trim().notEmpty(),
+    body('nombre')
+      .optional()
+      .trim()
+      .isLength({ min: 1, max: 100 })
+      .withMessage('El nombre debe tener entre 1 y 100 caracteres'),
+    body('correo').optional().isEmail().withMessage('Correo electrónico inválido'),
+    body('telefono')
+      .optional()
+      .trim()
+      .matches(/^\+?[0-9]{8,12}$/)
+      .withMessage('Teléfono inválido (8-12 dígitos, opcional +506)'),
+  ],
+  google: [
+    body('googleToken').notEmpty().withMessage('Token de Google es requerido'),
   ],
 };

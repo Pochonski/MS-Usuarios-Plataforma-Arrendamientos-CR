@@ -3,32 +3,32 @@ import { Usuario, CreateUsuarioDTO, UpdateUsuarioDTO } from '../models/types';
 
 export class UsuarioDAO {
   async findAll(): Promise<Usuario[]> {
-    const result = await database.query<any>('SELECT * FROM Usuarios');
+    const result = await database.query<Usuario>('SELECT * FROM Usuarios');
     return result;
   }
 
   async findById(id: string): Promise<Usuario | null> {
-    const result = await database.query<any>('SELECT * FROM Usuarios WHERE Id = ?', [id]);
+    const result = await database.query<Usuario>('SELECT * FROM Usuarios WHERE Id = ?', [id]);
     return result[0] || null;
   }
 
   async findByCorreo(correo: string): Promise<Usuario | null> {
-    const result = await database.query<any>('SELECT * FROM Usuarios WHERE Correo = ?', [correo]);
+    const result = await database.query<Usuario>('SELECT * FROM Usuarios WHERE Correo = ?', [correo]);
     return result[0] || null;
   }
 
   async findByEmail(email: string): Promise<Usuario[]> {
-    const result = await database.query<any>('SELECT * FROM Usuarios WHERE Correo LIKE ?', [`%${email}%`]);
+    const result = await database.query<Usuario>('SELECT * FROM Usuarios WHERE Correo LIKE ?', [`%${email}%`]);
     return result;
   }
 
   async findByRol(rol: 'dueno' | 'inquilino'): Promise<Usuario[]> {
-    const result = await database.query<any>('SELECT * FROM Usuarios WHERE Rol = ?', [rol]);
+    const result = await database.query<Usuario>('SELECT * FROM Usuarios WHERE Rol = ?', [rol]);
     return result;
   }
 
   async create(data: CreateUsuarioDTO & { id: string; contrasena?: string | null }): Promise<string> {
-    const result = await database.query<any>(
+    const result = await database.query<Usuario>(
       `INSERT INTO Usuarios (Id, Nombre, Correo, ContrasenaHash, Rol, Telefono, FechaRegistro)
        OUTPUT INSERTED.Id
        VALUES (?, ?, ?, ?, ?, ?, GETDATE())`,
@@ -36,7 +36,7 @@ export class UsuarioDAO {
         data.id,
         data.nombre,
         data.correo,
-        data.contrasena,
+        data.contrasena ?? null,  // null for OAuth users
         data.rol,
         data.telefono || null,
       ]
@@ -81,11 +81,12 @@ export class UsuarioDAO {
   }
 
   async getNextId(): Promise<string> {
-    const result = await database.query<any>(
-      "SELECT MAX(CAST(SUBSTRING(Id, 5) AS INT)) AS maxId FROM Usuarios WHERE Id LIKE 'usr-%'"
+    // Use atomic sequence table to avoid race conditions
+    const result = await database.query<Usuario>(
+      `UPDATE Sequences SET CurrentValue = CurrentValue + 1 OUTPUT INSERTED.CurrentValue WHERE Name = 'UsuarioId'`
     );
-    const maxId = result[0]?.maxId || 0;
-    return `usr-${String(maxId + 1).padStart(3, '0')}`;
+    const nextValue = result[0]?.CurrentValue || 1;
+    return `usr-${String(nextValue).padStart(3, '0')}`;
   }
 }
 
