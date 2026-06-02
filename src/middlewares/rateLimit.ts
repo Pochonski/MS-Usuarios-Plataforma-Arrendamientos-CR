@@ -1,17 +1,11 @@
 import rateLimit, { RateLimitRequestHandler, RateLimitExceededEventHandler } from 'express-rate-limit';
-import { Request, Response } from 'express';
+import { Request } from 'express';
 import { config } from '../config/env';
 import { generateRateLimitKey, shouldSkipRateLimit } from '../services/rateLimit.service';
-import { AuthRequest } from './auth';
 
 const keyGenerator = (req: Request): string => generateRateLimitKey(req);
 
 const skip = (req: Request): boolean => shouldSkipRateLimit(req);
-
-const getRetryMessage = (): string => {
-  const minutes = config.rateLimit.windowMs;
-  return `Demasiadas solicitudes, intenta de nuevo en ${minutes} minutos`;
-};
 
 const handleRateLimit: RateLimitExceededEventHandler = (req, res) => {
   res.status(429).json({

@@ -31,7 +31,7 @@ export const errorHandler = (
   err: AppError,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void => {
   const statusCode = err.statusCode || 500;
   const level = statusCode >= 500 ? 'error' : 'warn';
@@ -75,8 +75,25 @@ export class HttpError extends Error {
 
   constructor(message: string, statusCode: number) {
     super(message);
+    this.name = 'HttpError';
     this.statusCode = statusCode;
     this.isOperational = true;
     Error.captureStackTrace(this, this.constructor);
   }
+}
+
+export class BadRequestError extends HttpError {
+  constructor(message: string) { super(message, 400); this.name = 'BadRequestError'; }
+}
+export class UnauthorizedError extends HttpError {
+  constructor(message: string) { super(message, 401); this.name = 'UnauthorizedError'; }
+}
+export class ForbiddenError extends HttpError {
+  constructor(message: string) { super(message, 403); this.name = 'ForbiddenError'; }
+}
+export class NotFoundError extends HttpError {
+  constructor(message: string) { super(message, 404); this.name = 'NotFoundError'; }
+}
+export class ConflictError extends HttpError {
+  constructor(message: string) { super(message, 409); this.name = 'ConflictError'; }
 }

@@ -51,5 +51,9 @@ export const usuarioValidation = {
   ],
   google: [
     body('googleToken').notEmpty().withMessage('Token de Google es requerido'),
+    body('rol')
+      .optional()
+      .isIn(['dueno', 'inquilino'])
+      .withMessage('Rol debe ser "dueno" o "inquilino"'),
   ],
 };

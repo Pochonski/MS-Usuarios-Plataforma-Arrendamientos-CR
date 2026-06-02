@@ -37,7 +37,7 @@ class Database {
   }
 
   /**
-   * Convert mysql2-style `?` placeholders to mssql named parameters
+   * Convert `?` placeholders to mssql named parameters
    */
   private parseParams(sql: string, params?: any[]): { sql: string, request: mssql.Request } {
     if (!this.pool) {

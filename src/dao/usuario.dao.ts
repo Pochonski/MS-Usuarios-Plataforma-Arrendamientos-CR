@@ -7,6 +7,20 @@ export class UsuarioDAO {
     return result;
   }
 
+  async findAllPaginated(page: number, limit: number): Promise<Usuario[]> {
+    const offset = (page - 1) * limit;
+    const result = await database.query<Usuario>(
+      'SELECT * FROM Usuarios ORDER BY FechaRegistro DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY',
+      [offset, limit]
+    );
+    return result;
+  }
+
+  async countAll(): Promise<number> {
+    const result = await database.query<{ Total: number }>('SELECT COUNT(*) AS Total FROM Usuarios');
+    return result[0]?.Total || 0;
+  }
+
   async findById(id: string): Promise<Usuario | null> {
     const result = await database.query<Usuario>('SELECT * FROM Usuarios WHERE Id = ?', [id]);
     return result[0] || null;
@@ -17,8 +31,16 @@ export class UsuarioDAO {
     return result[0] || null;
   }
 
+  async findByCorreoExcludingId(correo: string, excludeId: string): Promise<Usuario | null> {
+    const result = await database.query<Usuario>(
+      'SELECT * FROM Usuarios WHERE Correo = ? AND Id != ?',
+      [correo, excludeId]
+    );
+    return result[0] || null;
+  }
+
   async findByEmail(email: string): Promise<Usuario[]> {
-    const result = await database.query<Usuario>('SELECT * FROM Usuarios WHERE Correo LIKE ?', [`%${email}%`]);
+    const result = await database.query<Usuario>('SELECT * FROM Usuarios WHERE Correo LIKE ?', [`${email}%`]);
     return result;
   }
 
@@ -27,11 +49,11 @@ export class UsuarioDAO {
     return result;
   }
 
-  async create(data: CreateUsuarioDTO & { id: string; contrasena?: string | null }): Promise<string> {
+  async create(data: CreateUsuarioDTO & { id: string; contrasena?: string | null; googleId?: string }): Promise<string> {
     const result = await database.query<{ Id: string }>(
-      `INSERT INTO Usuarios (Id, Nombre, Correo, ContrasenaHash, Rol, Telefono, FechaRegistro)
+      `INSERT INTO Usuarios (Id, Nombre, Correo, ContrasenaHash, Rol, Telefono, GoogleId, FechaRegistro)
        OUTPUT INSERTED.Id
-       VALUES (?, ?, ?, ?, ?, ?, GETDATE())`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, GETDATE())`,
       [
         data.id,
         data.nombre,
@@ -39,6 +61,7 @@ export class UsuarioDAO {
         data.contrasena ?? null,  // null for OAuth users
         data.rol,
         data.telefono || null,
+        data.googleId || null,
       ]
     );
     return result[0].Id;
@@ -78,6 +101,10 @@ export class UsuarioDAO {
   async delete(id: string): Promise<boolean> {
     const rowsAffected = await database.execute('DELETE FROM Usuarios WHERE Id = ?', [id]);
     return rowsAffected > 0;
+  }
+
+  async updateLastLogin(id: string): Promise<void> {
+    await database.execute('UPDATE Usuarios SET UltimoLogin = GETDATE() WHERE Id = ?', [id]);
   }
 
   async getNextId(): Promise<string> {

@@ -1,12 +1,13 @@
 import { OAuth2Client } from 'google-auth-library';
 import { config } from '../config/env';
 import { GoogleUserInfo } from '../models/types';
+import { HttpError, UnauthorizedError } from '../middlewares/errorHandler';
 
 const createClient = () => new OAuth2Client(config.google.clientId);
 
 export async function verifyGoogleToken(token: string): Promise<GoogleUserInfo> {
   if (!config.google.clientId) {
-    throw new Error('Google OAuth not configured');
+    throw new HttpError('Google OAuth not configured', 500);
   }
 
   const client = createClient();
@@ -17,10 +18,10 @@ export async function verifyGoogleToken(token: string): Promise<GoogleUserInfo> 
 
   const payload = ticket.getPayload();
   if (!payload) {
-    throw new Error('Invalid token from Google');
+    throw new UnauthorizedError('Invalid token from Google');
   }
   if (!payload.email) {
-    throw new Error('Email not provided by Google');
+    throw new UnauthorizedError('Email not provided by Google');
   }
 
   return {

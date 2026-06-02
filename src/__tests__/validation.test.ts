@@ -1,5 +1,3 @@
-import { body } from 'express-validator';
-
 describe('Validation Rules', () => {
   describe('email validation', () => {
     it('should accept valid email', () => {

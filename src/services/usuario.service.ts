@@ -4,23 +4,24 @@ import { usuarioDAO } from '../dao/usuario.dao';
 import { CreateUsuarioDTO, UpdateUsuarioDTO, Usuario, GoogleUserInfo, UsuarioResponse } from '../models/types';
 import { config } from '../config/env';
 import { RolUsuario } from '../models/enums';
-
-// Helper to convert DB row (PascalCase) to API response (camelCase)
-const toApiResponse = (usuario: Usuario) => ({
-  id: usuario.Id,
-  nombre: usuario.Nombre,
-  correo: usuario.Correo,
-  rol: usuario.Rol,
-  telefono: usuario.Telefono,
-  avatar: usuario.Avatar,
-  fechaRegistro: usuario.FechaRegistro,
-  ultimoLogin: usuario.UltimoLogin,
-});
+import { HttpError, UnauthorizedError, ConflictError } from '../middlewares/errorHandler';
 
 export class UsuarioService {
   async getAll(): Promise<UsuarioResponse[]> {
     const usuarios = await usuarioDAO.findAll();
     return usuarios.map(u => this.sinPassword(u));
+  }
+
+  async getAllPaginated(page: number, limit: number): Promise<{ usuarios: UsuarioResponse[]; total: number; pages: number }> {
+    const [usuarios, total] = await Promise.all([
+      usuarioDAO.findAllPaginated(page, limit),
+      usuarioDAO.countAll(),
+    ]);
+    return {
+      usuarios: usuarios.map(u => this.sinPassword(u)),
+      total,
+      pages: Math.ceil(total / limit),
+    };
   }
 
   async getById(id: string): Promise<UsuarioResponse | null> {
@@ -43,7 +44,7 @@ export class UsuarioService {
     // Check if email already exists
     const existing = await usuarioDAO.findByCorreo(data.correo);
     if (existing) {
-      throw new Error('El correo electrónico ya está registrado');
+      throw new ConflictError('El correo electrónico ya está registrado');
     }
 
     // Hash password only if provided (Google OAuth users may have empty password)
@@ -63,7 +64,7 @@ export class UsuarioService {
 
     const usuario = await usuarioDAO.findById(id);
     if (!usuario) {
-      throw new Error('Error al crear usuario');
+      throw new HttpError('Error al crear usuario', 500);
     }
 
     return {
@@ -73,6 +74,12 @@ export class UsuarioService {
   }
 
   async update(id: string, data: UpdateUsuarioDTO): Promise<boolean> {
+    if (data.correo) {
+      const existing = await usuarioDAO.findByCorreoExcludingId(data.correo, id);
+      if (existing) {
+        throw new ConflictError('El correo electrónico ya está registrado');
+      }
+    }
     return usuarioDAO.update(id, data);
   }
 
@@ -83,17 +90,17 @@ export class UsuarioService {
   async login(correo: string, contrasena: string): Promise<{ token: string; usuario: UsuarioResponse }> {
     const usuario = await usuarioDAO.findByCorreo(correo);
     if (!usuario) {
-      throw new Error('Credenciales inválidas');
+      throw new UnauthorizedError('Credenciales inválidas');
     }
 
     // OAuth users cannot login with password
     if (!usuario.ContrasenaHash) {
-      throw new Error('Credenciales inválidas');
+      throw new UnauthorizedError('Credenciales inválidas');
     }
 
     const isPasswordValid = await bcrypt.compare(contrasena, usuario.ContrasenaHash);
     if (!isPasswordValid) {
-      throw new Error('Credenciales inválidas');
+      throw new UnauthorizedError('Credenciales inválidas');
     }
 
     const token = jwt.sign(
@@ -105,6 +112,8 @@ export class UsuarioService {
       config.jwt.secret,
       { expiresIn: '24h' }
     );
+
+    await usuarioDAO.updateLastLogin(usuario.Id);
 
     return {
       token,
@@ -118,7 +127,7 @@ export class UsuarioService {
     return this.sinPassword(usuario);
   }
 
-  async googleLogin(googleUser: GoogleUserInfo): Promise<{ token: string; usuario: UsuarioResponse }> {
+  async googleLogin(googleUser: GoogleUserInfo, rol?: RolUsuario): Promise<{ token: string; usuario: UsuarioResponse }> {
     // Buscar usuario por email de Google
     let usuario = await usuarioDAO.findByCorreo(googleUser.email);
 
@@ -129,15 +138,16 @@ export class UsuarioService {
         nombre: googleUser.name,
         correo: googleUser.email,
         contrasena: undefined,  // Google users no password
-        rol: RolUsuario.DUENO,
+        rol: rol || RolUsuario.DUENO,
         telefono: undefined,
+        googleId: googleUser.googleId,
         id,
       });
       usuario = await usuarioDAO.findById(id);
     }
 
     if (!usuario) {
-      throw new Error('Error al procesar usuario de Google');
+      throw new HttpError('Error al procesar usuario de Google', 500);
     }
 
     // Generar JWT
@@ -147,11 +157,13 @@ export class UsuarioService {
       { expiresIn: '24h' }
     );
 
+    await usuarioDAO.updateLastLogin(usuario.Id);
+
     return { token, usuario: this.sinPassword(usuario) };
   }
 
   private sinPassword(usuario: Usuario): UsuarioResponse {
-    const { ContrasenaHash, ...rest } = usuario;
+    const { ContrasenaHash: _hash, ...rest } = usuario;
     // Convert to camelCase for API response
     return {
       id: rest.Id,
