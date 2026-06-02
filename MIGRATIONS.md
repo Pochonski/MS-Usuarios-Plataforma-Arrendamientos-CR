@@ -41,24 +41,41 @@ Seed: `INSERT INTO Sequences (Name, CurrentValue) VALUES (N'UsuarioId', 0);`
 
 ## Ejecutar Migraciones
 
-### Azure Portal (Query Editor)
+Hay dos archivos SQL:
 
-1. Ir a [Azure Portal](https://portal.azure.com)
-2. Buscar la base de datos `usuarios_db`
-3. Click en **Query editor (preview)**
-4. Ejecutar `sql/schema.sql`
+| Archivo | Uso |
+|---------|-----|
+| `sql/schema.azure.sql` | **Azure Portal Query Editor** (recomendado) |
+| `sql/schema.sql` | CLI (`sqlcmd`) o referencia completa con CREATE DATABASE |
 
-### Azure CLI
+### Azure Portal (Query Editor) — Recomendado
+
+1. Ir a [Azure Portal](https://portal.azure.com) > **SQL databases**
+2. Crear la base de datos `usuarios_db` si no existe:
+   - Click en **Create** > Database name: `usuarios_db`
+   - Seleccionar el servidor existente y plan (Basic S0 es suficiente)
+3. Abrir la base de datos `usuarios_db` > **Query editor (preview)**
+4. Autenticarse con usuario/contraseña del servidor
+5. Copiar y pegar el contenido de `sql/schema.azure.sql`
+6. Click en **Run**
+
+> **Nota**: El Query Editor de Azure NO soporta `CREATE DATABASE`, `USE`, ni batch separators `GO`. Por eso se usa `schema.azure.sql` que solo contiene las tablas.
+
+### Azure CLI (sqlcmd)
 
 ```bash
-sqlcmd -S <server>.database.windows.net -d usuarios_db -U <user> -P <password> -i sql/schema.sql
+# Crear la BD primero
+az sql db create -g <resource-group> -s <server> -n usuarios_db --service-objective S0
+
+# Ejecutar schema
+sqlcmd -S <server>.database.windows.net -d usuarios_db -U <user> -P <password> -i sql/schema.azure.sql
 ```
 
 ### Desde código (desarrollo)
 
 1. Copiar `.env.example` a `.env`
 2. Configurar credenciales de Azure SQL con `DB_NAME=usuarios_db`
-3. Ejecutar `sql/schema.sql` en la base de datos
+3. Ejecutar `schema.azure.sql` en la base de datos (vía Azure Portal o CLI)
 4. Ejecutar `npm run dev`
 
 ## Notas Importantes
