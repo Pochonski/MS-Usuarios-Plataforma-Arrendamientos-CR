@@ -1,4 +1,5 @@
 import swaggerJsdoc from 'swagger-jsdoc';
+import path from 'path';
 
 const options: swaggerJsdoc.Options = {
   definition: {
@@ -73,7 +74,7 @@ const options: swaggerJsdoc.Options = {
       { name: 'Health', description: 'Health check del servicio' },
     ],
   },
-  apis: ['./src/routes/*.ts'],
+  apis: [path.resolve(__dirname, '../routes/*.ts')],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);

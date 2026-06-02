@@ -47,8 +47,8 @@ export class UsuarioService {
       throw new ConflictError('El correo electrónico ya está registrado');
     }
 
-    // Hash password only if provided (Google OAuth users may have empty password)
-    const hashedPassword = data.contrasena ? await bcrypt.hash(data.contrasena, 10) : '';
+    // Hash password only if provided (no password for OAuth users)
+    const hashedPassword = data.contrasena ? await bcrypt.hash(data.contrasena, 10) : undefined;
 
     // Generate next ID
     const id = await usuarioDAO.getNextId();
@@ -110,7 +110,7 @@ export class UsuarioService {
         rol: usuario.Rol,
       },
       config.jwt.secret,
-      { expiresIn: '24h' }
+      { expiresIn: config.jwt.expiresIn } as jwt.SignOptions
     );
 
     await usuarioDAO.updateLastLogin(usuario.Id);
@@ -154,7 +154,7 @@ export class UsuarioService {
     const token = jwt.sign(
       { id: usuario.Id, correo: usuario.Correo, rol: usuario.Rol },
       config.jwt.secret,
-      { expiresIn: '24h' }
+      { expiresIn: config.jwt.expiresIn } as jwt.SignOptions
     );
 
     await usuarioDAO.updateLastLogin(usuario.Id);

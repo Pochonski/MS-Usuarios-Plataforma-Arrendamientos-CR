@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { usuarioController } from '../controllers/usuario.controller';
-import { authenticate, optionalAuth } from '../middlewares/auth';
+import { authenticate } from '../middlewares/auth';
 import { validate, usuarioValidation } from '../middlewares/validation';
 import { rateLimitAuth, rateLimitRead, rateLimitWrite } from '../middlewares/rateLimit';
 
@@ -152,6 +152,8 @@ router.get('/auth/profile', rateLimitRead, authenticate, usuarioController.getPr
  *   get:
  *     tags: [Usuarios]
  *     summary: Listar usuarios (con paginación y filtros opcionales)
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - in: query
  *         name: page
@@ -188,8 +190,10 @@ router.get('/auth/profile', rateLimitRead, authenticate, usuarioController.getPr
  *                 - type: array
  *                   items:
  *                     $ref: '#/components/schemas/UsuarioResponse'
+ *       401:
+ *         description: No autenticado
  */
-router.get('/usuarios', rateLimitRead, optionalAuth, usuarioController.getAll);
+router.get('/usuarios', rateLimitRead, authenticate, usuarioController.getAll);
 
 /**
  * @swagger
@@ -197,6 +201,8 @@ router.get('/usuarios', rateLimitRead, optionalAuth, usuarioController.getAll);
  *   get:
  *     tags: [Usuarios]
  *     summary: Obtener usuario por ID
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -211,10 +217,12 @@ router.get('/usuarios', rateLimitRead, optionalAuth, usuarioController.getAll);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/UsuarioResponse'
+ *       401:
+ *         description: No autenticado
  *       404:
  *         description: Usuario no encontrado
  */
-router.get('/usuario/:id', rateLimitRead, optionalAuth, usuarioController.getById);
+router.get('/usuario/:id', rateLimitRead, authenticate, usuarioController.getById);
 
 // Write endpoints - moderate rate limiting
 

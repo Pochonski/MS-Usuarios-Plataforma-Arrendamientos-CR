@@ -40,7 +40,8 @@ export class UsuarioDAO {
   }
 
   async findByEmail(email: string): Promise<Usuario[]> {
-    const result = await database.query<Usuario>('SELECT * FROM Usuarios WHERE Correo LIKE ?', [`${email}%`]);
+    const escaped = email.replace(/%/g, '\\%').replace(/_/g, '\\_');
+    const result = await database.query<Usuario>('SELECT * FROM Usuarios WHERE Correo LIKE ?', [`${escaped}%`]);
     return result;
   }
 
@@ -112,7 +113,10 @@ export class UsuarioDAO {
     const result = await database.query<{ CurrentValue: number }>(
       `UPDATE Sequences SET CurrentValue = CurrentValue + 1 OUTPUT INSERTED.CurrentValue WHERE Name = 'UsuarioId'`
     );
-    const nextValue = result[0]?.CurrentValue || 1;
+    const nextValue = result[0]?.CurrentValue;
+    if (!nextValue) {
+      throw new Error('Sequence UsuarioId not found in Sequences table. Run sql/schema.sql to initialize.');
+    }
     return `usr-${String(nextValue).padStart(3, '0')}`;
   }
 }

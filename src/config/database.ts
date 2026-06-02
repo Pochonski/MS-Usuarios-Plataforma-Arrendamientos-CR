@@ -21,7 +21,7 @@ class Database {
       },
       options: {
         encrypt: true,
-        trustServerCertificate: true,
+        trustServerCertificate: config.nodeEnv !== 'production',
       },
     });
 
