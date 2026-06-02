@@ -61,10 +61,12 @@ Este microservicio es responsable de:
 | POST | /auth/registro | Registro de nuevo usuario | No |
 | POST | /auth/google | Login/registro con Google OAuth | No |
 | GET | /auth/profile | Perfil del usuario autenticado | Sí |
-| GET | /usuarios | Listar usuarios (filtros: email, rol) | No |
-| GET | /usuario/:id | Obtener usuario por ID | No |
-| PUT | /usuario/:id | Actualizar usuario | Sí |
+| GET | /usuarios | Listar usuarios (paginación, filtros) | Sí |
+| GET | /usuario/:id | Obtener usuario por ID | Sí |
+| PUT | /usuario/:id | Actualizar perfil propio | Sí |
+| DELETE | /usuario/:id | Eliminar cuenta propia | Sí |
 | GET | /health | Health check con verificación de BD | No |
+| GET | /docs | Documentación Swagger/OpenAPI | No |
 
 ## Flujos de Autenticación
 
@@ -144,7 +146,7 @@ interface GoogleUserInfo {
 # Database
 DB_HOST=your-server.database.windows.net
 DB_PORT=1433
-DB_NAME=arrendamientos_db
+DB_NAME=usuarios_db
 DB_USER=your_username
 DB_PASSWORD=your_password
 

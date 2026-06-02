@@ -53,9 +53,17 @@ src/
 
 | Método | Ruta | Descripción | Auth |
 |--------|------|-------------|------|
-| GET | `/api/usuarios` | Listar usuarios (filtros: email, rol) | No |
-| GET | `/api/usuario/:id` | Obtener usuario por ID | No |
-| PUT | `/api/usuario/:id` | Actualizar usuario | Sí |
+| GET | `/api/usuarios` | Listar usuarios (paginación y filtros) | Sí |
+| GET | `/api/usuario/:id` | Obtener usuario por ID | Sí |
+| PUT | `/api/usuario/:id` | Actualizar perfil propio | Sí |
+| DELETE | `/api/usuario/:id` | Eliminar cuenta propia | Sí |
+
+### Health y Docs
+
+| Método | Ruta | Descripción | Auth |
+|--------|------|-------------|------|
+| GET | `/api/health` | Health check con verificación de BD | No |
+| GET | `/api/docs` | Documentación Swagger/OpenAPI | No |
 
 ### Health
 
@@ -228,7 +236,7 @@ npm start
 | `NODE_ENV` | Entorno (development/production) | No |
 | `DB_HOST` | Host de Azure SQL | Sí |
 | `DB_PORT` | Puerto (default: 1433) | No |
-| `DB_NAME` | Nombre de la base de datos | Sí |
+| `DB_NAME` | Nombre de la base de datos (usuarios_db) | Sí |
 | `DB_USER` | Usuario de la base de datos | Sí |
 | `DB_PASSWORD` | Contraseña de la base de datos | Sí |
 | `JWT_SECRET` | Secret para firmar JWT tokens | **Sí** |
@@ -315,9 +323,9 @@ npm test -- --coverage
 
 ## Database Schema
 
-El schema SQL está en `sql/schema.sql` y es compatible con Azure SQL Database (SQL Server).
+El microservicio tiene su propia base de datos `usuarios_db`. El schema SQL está en `sql/schema.sql` y es compatible con Azure SQL Database (SQL Server).
 
-### Tablas principales
+### Tablas
 
 - **Usuarios**: Id, Nombre, Correo, ContrasenaHash, Rol, Telefono, Avatar, GoogleId, FechaRegistro, UltimoLogin
 - **Sequences**: Tabla auxiliar para generación atómica de IDs
