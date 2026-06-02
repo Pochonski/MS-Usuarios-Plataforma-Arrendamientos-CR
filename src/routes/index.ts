@@ -12,7 +12,17 @@ router.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Health check with database connectivity verification
 router.get('/health', async (req, res) => {
-  const dbHealthy = await database.isHealthy();
+  let dbHealthy = await database.isHealthy();
+
+  if (!dbHealthy) {
+    try {
+      await database.reconnect();
+      dbHealthy = await database.isHealthy();
+    } catch {
+      // reconnection failed
+    }
+  }
+
   const status = dbHealthy ? 'healthy' : 'unhealthy';
   const statusCode = dbHealthy ? 200 : 503;
 

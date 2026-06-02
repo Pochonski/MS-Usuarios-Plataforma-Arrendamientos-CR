@@ -16,17 +16,19 @@ class Database {
       database: config.database.name,
       pool: {
         max: 10,
-        min: 0,
-        idleTimeoutMillis: 30000,
+        min: 1,
+        idleTimeoutMillis: 60000,
       },
       options: {
         encrypt: true,
-        trustServerCertificate: config.nodeEnv !== 'production',
+        trustServerCertificate: true,
       },
+      connectionTimeout: 15000,
+      requestTimeout: 30000,
     });
 
     await this.pool.connect();
-    console.log('✅ Database connected successfully');
+    console.log('Database connected successfully');
   }
 
   async getConnection(): Promise<mssql.ConnectionPool> {
@@ -100,6 +102,18 @@ class Database {
     } catch {
       return false;
     }
+  }
+
+  async reconnect(): Promise<void> {
+    try {
+      if (this.pool) {
+        await this.pool.close();
+      }
+    } catch {
+      // ignore close errors
+    }
+    this.pool = null;
+    await this.connect();
   }
 }
 
