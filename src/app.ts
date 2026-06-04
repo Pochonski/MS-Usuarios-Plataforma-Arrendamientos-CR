@@ -22,7 +22,10 @@ class App {
 
   private configureMiddlewares(): void {
     // Security headers with Helmet
-    this.app.use(helmet());
+    this.app.use(helmet({
+      crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+      crossOriginEmbedderPolicy: false,
+    }));
 
     // Trust proxy for correct IP detection behind load balancers/APIM
     this.app.set('trust proxy', 1);
