@@ -5,6 +5,11 @@ import { HttpError, UnauthorizedError } from '../middlewares/errorHandler';
 
 const createClient = () => new OAuth2Client(config.google.clientId);
 
+const VALID_GOOGLE_ISSUERS = new Set<string>([
+  'accounts.google.com',
+  'https://accounts.google.com',
+]);
+
 export async function verifyGoogleToken(token: string): Promise<GoogleUserInfo> {
   if (!config.google.clientId) {
     throw new HttpError('Google OAuth not configured', 500);
@@ -22,6 +27,12 @@ export async function verifyGoogleToken(token: string): Promise<GoogleUserInfo> 
   }
   if (!payload.email) {
     throw new UnauthorizedError('Email not provided by Google');
+  }
+  if (payload.email_verified !== true) {
+    throw new UnauthorizedError('Google account email is not verified');
+  }
+  if (!payload.iss || !VALID_GOOGLE_ISSUERS.has(payload.iss)) {
+    throw new UnauthorizedError('Invalid Google token issuer');
   }
 
   return {

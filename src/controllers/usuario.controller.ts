@@ -59,8 +59,8 @@ export class UsuarioController {
       // Normalize field names from frontend (Google OAuth sends different names)
       const rawData = req.body;
       const data: CreateUsuarioDTO = {
-        nombre: rawData.Nombre || rawData.nombre,
-        correo: rawData.Correo || rawData.email || rawData.correo,
+        nombre: (rawData.Nombre || rawData.nombre || '').trim(),
+        correo: (rawData.Correo || rawData.email || rawData.correo || '').toLowerCase().trim(),
         contrasena: rawData.Contraseña || rawData.contrasena || '',
         rol: rawData.Rol || rawData.rol || 'dueno',
         telefono: rawData.Telefono || rawData.telefono || '',
@@ -109,7 +109,8 @@ export class UsuarioController {
         return;
       }
 
-      const result = await usuarioService.login(correo, contrasena);
+      const normalizedCorreo = String(correo).toLowerCase().trim();
+      const result = await usuarioService.login(normalizedCorreo, contrasena);
       res.json(result);
     } catch (error) {
       this.handleError(res, error);

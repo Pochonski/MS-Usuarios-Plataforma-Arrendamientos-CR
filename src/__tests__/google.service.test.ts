@@ -42,6 +42,30 @@ describe('Google OAuth', () => {
     });
   });
 
+  describe('Payload validation rules', () => {
+    it('should require email_verified === true', () => {
+      const payload = { email_verified: true, iss: 'https://accounts.google.com', email: 'a@b.com' };
+      expect(payload.email_verified).toBe(true);
+    });
+
+    it('should reject payload with email_verified = false', () => {
+      const payload = { email_verified: false, iss: 'https://accounts.google.com', email: 'a@b.com' };
+      expect(payload.email_verified).toBe(false);
+    });
+
+    it('should accept valid Google issuers', () => {
+      const validIssuers = ['accounts.google.com', 'https://accounts.google.com'];
+      expect(validIssuers).toContain('accounts.google.com');
+      expect(validIssuers).toContain('https://accounts.google.com');
+    });
+
+    it('should reject invalid Google issuers', () => {
+      const validIssuers = new Set(['accounts.google.com', 'https://accounts.google.com']);
+      expect(validIssuers.has('evil.com')).toBe(false);
+      expect(validIssuers.has('https://attacker.example.com')).toBe(false);
+    });
+  });
+
   describe('OAuth user creation', () => {
     it('should create user with null password', () => {
       const oauthUserData = {

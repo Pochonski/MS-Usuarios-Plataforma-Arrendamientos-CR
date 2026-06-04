@@ -47,20 +47,36 @@ export class UsuarioService {
       throw new ConflictError('El correo electrónico ya está registrado');
     }
 
-    // Hash password only if provided (no password for OAuth users)
-    const hashedPassword = data.contrasena ? await bcrypt.hash(data.contrasena, 10) : undefined;
+    // Hash password (required for /auth/registro; controller validates min length)
+    if (!data.contrasena) {
+      throw new HttpError('La contraseña es requerida para el registro', 400);
+    }
+    const hashedPassword = await bcrypt.hash(data.contrasena, 10);
 
     // Generate next ID
     const id = await usuarioDAO.getNextId();
 
-    await usuarioDAO.create({
-      nombre: data.nombre,
-      correo: data.correo,
-      contrasena: hashedPassword,
-      rol: data.rol,
-      telefono: data.telefono,
-      id,
-    });
+    try {
+      await usuarioDAO.create({
+        nombre: data.nombre,
+        correo: data.correo,
+        contrasena: hashedPassword,
+        rol: data.rol,
+        telefono: data.telefono,
+        id,
+      });
+    } catch (error) {
+      // Handle UNIQUE constraint violation from race condition (mssql error 2627 / 2601)
+      const err = error as { number?: number; code?: string; message?: string };
+      const isUniqueViolation =
+        err?.number === 2627 ||
+        err?.number === 2601 ||
+        (typeof err?.message === 'string' && /unique/i.test(err.message));
+      if (isUniqueViolation) {
+        throw new ConflictError('El correo electrónico ya está registrado');
+      }
+      throw error;
+    }
 
     const usuario = await usuarioDAO.findById(id);
     if (!usuario) {
@@ -128,29 +144,68 @@ export class UsuarioService {
   }
 
   async googleLogin(googleUser: GoogleUserInfo, rol?: RolUsuario): Promise<{ token: string; usuario: UsuarioResponse }> {
-    // Buscar usuario por email de Google
-    let usuario = await usuarioDAO.findByCorreo(googleUser.email);
+    const email = googleUser.email.toLowerCase().trim();
 
-    if (!usuario) {
-      // Crear nuevo usuario Google
+    // 1) Prefer lookup by GoogleId to avoid duplicates if the user changed their Google email
+    let usuario = await usuarioDAO.findByGoogleId(googleUser.googleId);
+
+    if (usuario) {
+      // Existing Google-linked user — login directly
+      return this.finalizeLogin(usuario);
+    }
+
+    // 2) No match by GoogleId — try matching by email
+    const existingByEmail = await usuarioDAO.findByCorreo(email);
+
+    if (existingByEmail) {
+      // Takeover protection: if this user is already linked to a different GoogleId, refuse.
+      if (existingByEmail.GoogleId && existingByEmail.GoogleId !== googleUser.googleId) {
+        throw new UnauthorizedError('Esta cuenta ya está vinculada a otra cuenta de Google');
+      }
+
+      // Link the GoogleId (and avatar if missing) to the existing account.
+      await usuarioDAO.setGoogleProfile(existingByEmail.Id, googleUser.googleId, googleUser.picture ?? null);
+      const refreshed = await usuarioDAO.findById(existingByEmail.Id);
+      if (!refreshed) {
+        throw new HttpError('Error al vincular cuenta de Google', 500);
+      }
+      usuario = refreshed;
+    } else {
+      // 3) Brand new Google user — create with provided rol (default DUENO)
       const id = await usuarioDAO.getNextId();
-      await usuarioDAO.create({
-        nombre: googleUser.name,
-        correo: googleUser.email,
-        contrasena: undefined,  // Google users no password
-        rol: rol || RolUsuario.DUENO,
-        telefono: undefined,
-        googleId: googleUser.googleId,
-        id,
-      });
-      usuario = await usuarioDAO.findById(id);
+      try {
+        await usuarioDAO.create({
+          nombre: googleUser.name,
+          correo: email,
+          contrasena: undefined,
+          rol: rol || RolUsuario.DUENO,
+          telefono: undefined,
+          avatar: googleUser.picture,
+          googleId: googleUser.googleId,
+          id,
+        });
+      } catch (error) {
+        const err = error as { number?: number; message?: string };
+        const isUniqueViolation =
+          err?.number === 2627 ||
+          err?.number === 2601 ||
+          (typeof err?.message === 'string' && /unique/i.test(err.message));
+        if (isUniqueViolation) {
+          throw new ConflictError('El correo electrónico ya está registrado');
+        }
+        throw error;
+      }
+      const created = await usuarioDAO.findById(id);
+      if (!created) {
+        throw new HttpError('Error al crear usuario de Google', 500);
+      }
+      usuario = created;
     }
 
-    if (!usuario) {
-      throw new HttpError('Error al procesar usuario de Google', 500);
-    }
+    return this.finalizeLogin(usuario);
+  }
 
-    // Generar JWT
+  private async finalizeLogin(usuario: Usuario): Promise<{ token: string; usuario: UsuarioResponse }> {
     const token = jwt.sign(
       { id: usuario.Id, correo: usuario.Correo, rol: usuario.Rol },
       config.jwt.secret,

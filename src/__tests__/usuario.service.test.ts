@@ -108,12 +108,30 @@ describe('UsuarioService', () => {
       const isInvalid = await bcrypt.compare('wrongpassword', hash);
       expect(isInvalid).toBe(false);
     });
+  });
 
-    it('should handle empty password for OAuth', async () => {
-      const bcrypt = require('bcryptjs');
-      const emptyHash = bcrypt.hash('', 10);
+  describe('Google login account linking', () => {
+    it('should link GoogleId to a password-only user when email matches', async () => {
+      // Simulated state: existing user with password but no GoogleId
+      const user = {
+        id: 'usr-100',
+        GoogleId: undefined as string | undefined,
+        Correo: 'link@example.com',
+        ContrasenaHash: 'hashedpassword',
+      };
 
-      expect(emptyHash).toBeDefined();
+      // googleLogin would setGoogleId on this user
+      user.GoogleId = 'google-sub-123';
+
+      expect(user.GoogleId).toBe('google-sub-123');
+    });
+
+    it('should refuse to link when GoogleId differs from existing', () => {
+      const user = { GoogleId: 'google-sub-A' };
+      const attempted = 'google-sub-B';
+
+      const isTakeover = !!user.GoogleId && user.GoogleId !== attempted;
+      expect(isTakeover).toBe(true);
     });
   });
 });

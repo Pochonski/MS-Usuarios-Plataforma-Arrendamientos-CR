@@ -32,13 +32,28 @@ describe('Validation Rules', () => {
 
   describe('nombre validation', () => {
     it('should accept valid names', () => {
-      expect('Juan'.length >= 1 && 'Juan'.length <= 100).toBe(true);
-      expect('María García López'.length >= 1 && 'María García López'.length <= 100).toBe(true);
+      expect('Juan'.length >= 2 && 'Juan'.length <= 100).toBe(true);
+      expect('María García López'.length >= 2 && 'María García López'.length <= 100).toBe(true);
     });
 
     it('should reject invalid names', () => {
-      expect(''.length >= 1).toBe(false); // empty
+      expect(''.length >= 2).toBe(false); // empty
+      expect('A'.length >= 2).toBe(false); // too short
       expect('A'.repeat(101).length <= 100).toBe(false); // too long
+    });
+  });
+
+  describe('contrasena validation', () => {
+    it('should accept passwords with 8 or more chars', () => {
+      const min = 8;
+      expect('12345678'.length >= min).toBe(true);
+      expect('Password123!'.length >= min).toBe(true);
+    });
+
+    it('should reject passwords with less than 8 chars', () => {
+      const min = 8;
+      expect('1234567'.length >= min).toBe(false);
+      expect(''.length >= min).toBe(false);
     });
   });
 

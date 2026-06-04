@@ -39,6 +39,14 @@ export class UsuarioDAO {
     return result[0] || null;
   }
 
+  async findByGoogleId(googleId: string): Promise<Usuario | null> {
+    const result = await database.query<Usuario>(
+      'SELECT * FROM Usuarios WHERE GoogleId = ?',
+      [googleId]
+    );
+    return result[0] || null;
+  }
+
   async findByEmail(email: string): Promise<Usuario[]> {
     const escaped = email.replace(/%/g, '\\%').replace(/_/g, '\\_');
     const result = await database.query<Usuario>('SELECT * FROM Usuarios WHERE Correo LIKE ?', [`${escaped}%`]);
@@ -50,18 +58,19 @@ export class UsuarioDAO {
     return result;
   }
 
-  async create(data: CreateUsuarioDTO & { id: string; contrasena?: string | null; googleId?: string }): Promise<string> {
+  async create(data: CreateUsuarioDTO & { id: string; contrasena?: string | null; googleId?: string; avatar?: string }): Promise<string> {
     const result = await database.query<{ Id: string }>(
-      `INSERT INTO Usuarios (Id, Nombre, Correo, ContrasenaHash, Rol, Telefono, GoogleId, FechaRegistro)
+      `INSERT INTO Usuarios (Id, Nombre, Correo, ContrasenaHash, Rol, Telefono, Avatar, GoogleId, FechaRegistro)
        OUTPUT INSERTED.Id
-       VALUES (?, ?, ?, ?, ?, ?, ?, GETDATE())`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, GETDATE())`,
       [
         data.id,
         data.nombre,
         data.correo,
-        data.contrasena ?? null,  // null for OAuth users
+        data.contrasena ?? null,
         data.rol,
         data.telefono || null,
+        data.avatar || null,
         data.googleId || null,
       ]
     );
@@ -106,6 +115,21 @@ export class UsuarioDAO {
 
   async updateLastLogin(id: string): Promise<void> {
     await database.execute('UPDATE Usuarios SET UltimoLogin = GETDATE() WHERE Id = ?', [id]);
+  }
+
+  async setGoogleId(id: string, googleId: string): Promise<void> {
+    await database.execute('UPDATE Usuarios SET GoogleId = ? WHERE Id = ?', [googleId, id]);
+  }
+
+  async setGoogleProfile(id: string, googleId: string, avatar: string | null): Promise<void> {
+    // Set GoogleId and, if the user has no avatar yet, populate it from Google
+    await database.execute(
+      `UPDATE Usuarios
+         SET GoogleId = ?,
+             Avatar = COALESCE(Avatar, ?)
+       WHERE Id = ?`,
+      [googleId, avatar, id]
+    );
   }
 
   async getNextId(): Promise<string> {
