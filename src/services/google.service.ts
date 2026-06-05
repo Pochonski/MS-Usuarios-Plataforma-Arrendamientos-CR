@@ -3,6 +3,10 @@ import { config } from '../config/env';
 import { GoogleUserInfo } from '../models/types';
 import { HttpError, UnauthorizedError } from '../middlewares/errorHandler';
 
+// We only need the Client ID for verifyIdToken(): Google's public keys (JWKs)
+// are fetched from their well-known endpoint, the signature is checked
+// against `aud` (the client id), and the payload is returned. The Client
+// Secret is NOT required for this flow and is intentionally not read here.
 const createClient = () => new OAuth2Client(config.google.clientId);
 
 const VALID_GOOGLE_ISSUERS = new Set<string>([

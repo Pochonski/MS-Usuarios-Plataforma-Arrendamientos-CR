@@ -241,7 +241,7 @@ npm start
 | `DB_PASSWORD` | Contraseña de la base de datos | Sí |
 | `JWT_SECRET` | Secret para firmar JWT tokens | **Sí** |
 | `JWT_EXPIRES_IN` | Expiración del token (default: 24h) | No |
-| `GOOGLE_CLIENT_ID` | Client ID de Google OAuth | Para login con Google |
+| `GOOGLE_CLIENT_ID` | Client ID de Google OAuth (NO el secret) | Para login con Google |
 | `RL_WINDOW_MINUTES` | Ventana de rate limit (default: 15) | No |
 | `RL_AUTH_MAX` | Requests permitidos para auth (default: 5) | No |
 | `RL_READ_MAX` | Requests permitidos para reads (default: 200) | No |
