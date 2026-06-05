@@ -3,6 +3,7 @@ import swaggerUi from 'swagger-ui-express';
 
 import usuarioRoutes from './usuario.routes';
 import { database } from '../config/database';
+import { config } from '../config/env';
 import { swaggerSpec } from '../config/swagger';
 
 const router = Router();
@@ -31,6 +32,11 @@ router.get('/health', async (req, res) => {
     timestamp: new Date().toISOString(),
     database: {
       status: dbHealthy ? 'connected' : 'disconnected',
+    },
+    google: {
+      configured: Boolean(config.google.clientId),
+      // First 12 chars only, never the full client id in unauthenticated response
+      clientIdPrefix: config.google.clientId ? config.google.clientId.slice(0, 12) : null,
     },
   });
 });

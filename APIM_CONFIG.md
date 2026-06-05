@@ -117,3 +117,61 @@ Si prefieres evitar la complejidad de APIM para el frontend, considera:
 4. APIM queda solo para integraciones B2B server-to-server
 
 Esta es la opción recomendada para aplicaciones web con frontend público.
+
+---
+
+## Fix para Google Sign-In en Azure Static Web Apps
+
+El warning de `Cross-Origin-Opener-Policy would block the window.postMessage call` aparece en el popup de Google porque la **página padre (SWA)** tiene un COOP estricto. Esto **no se arregla en el backend**, se arregla en el frontend.
+
+### Solución: `staticwebapp.config.json` en la raíz del repo del SWA
+
+Crea o edita `staticwebapp.config.json` en la raíz del proyecto del frontend (Azure Static Web Apps):
+
+```json
+{
+  "globalHeaders": {
+    "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+    "Cross-Origin-Embedder-Policy": "unsafe-none",
+    "Cross-Origin-Resource-Policy": "cross-origin"
+  }
+}
+```
+
+**Qué hace cada header:**
+- `Cross-Origin-Opener-Policy: same-origin-allow-popups` → Permite que el popup de Google Sign-In se comunique con la página padre (necesario para `postMessage`).
+- `Cross-Origin-Embedder-Policy: unsafe-none` → Requerido por Google Identity Services para cargar sus recursos.
+- `Cross-Origin-Resource-Policy: cross-origin` → Permite que recursos del SWA sean cargados por Google.
+
+### Verificar después de redesplegar el SWA
+
+```bash
+curl -I https://agreeable-ground-0b1436910.6.azurestaticapps.net/
+```
+
+Debe incluir los 3 headers en la respuesta.
+
+---
+
+## Endpoint de diagnóstico del backend
+
+El backend expone `/api/health` (sin autenticación). Útil para verificar configuración:
+
+```bash
+curl https://plataforma-arrendamientos-api.azure-api.net/health
+```
+
+Respuesta esperada:
+```json
+{
+  "status": "healthy",
+  "timestamp": "2024-...",
+  "database": { "status": "connected" },
+  "google": {
+    "configured": true,
+    "clientIdPrefix": "703304000101"
+  }
+}
+```
+
+Si `clientIdPrefix` no empieza con `703304000101`, el backend está usando un Client ID distinto al configurado en Google Cloud Console.
