@@ -40,7 +40,7 @@ export class UsuarioService {
     return usuarios.map(u => this.sinPassword(u));
   }
 
-  async create(data: CreateUsuarioDTO): Promise<{ id: string; usuario: UsuarioResponse }> {
+  async create(data: CreateUsuarioDTO): Promise<{ token: string; user: UsuarioResponse }> {
     // Check if email already exists
     const existing = await usuarioDAO.findByCorreo(data.correo);
     if (existing) {
@@ -83,10 +83,8 @@ export class UsuarioService {
       throw new HttpError('Error al crear usuario', 500);
     }
 
-    return {
-      id: usuario.Id,
-      usuario: this.sinPassword(usuario),
-    };
+    // Immediately sign in the new user (same as login)
+    return this.finalizeGoogleLogin(usuario);
   }
 
   async update(id: string, data: UpdateUsuarioDTO): Promise<boolean> {
@@ -141,6 +139,21 @@ export class UsuarioService {
     const usuario = await usuarioDAO.findById(id);
     if (!usuario) return null;
     return this.sinPassword(usuario);
+  }
+
+  async refreshToken(id: string): Promise<{ token: string; user: UsuarioResponse }> {
+    const usuario = await usuarioDAO.findById(id);
+    if (!usuario) {
+      throw new UnauthorizedError('Usuario no encontrado');
+    }
+
+    const token = jwt.sign(
+      { id: usuario.Id, correo: usuario.Correo, rol: usuario.Rol },
+      config.jwt.secret,
+      { expiresIn: config.jwt.expiresIn } as jwt.SignOptions
+    );
+
+    return { token, user: this.sinPassword(usuario) };
   }
 
   async googleLogin(googleUser: GoogleUserInfo, rol?: RolUsuario): Promise<{ token: string; user: UsuarioResponse }> {

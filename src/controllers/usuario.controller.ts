@@ -67,7 +67,7 @@ export class UsuarioController {
       };
 
       const result = await usuarioService.create(data);
-      res.status(201).json(result.usuario);
+      res.status(201).json(result);
     } catch (error) {
       this.handleError(res, error);
     }
@@ -132,6 +132,21 @@ export class UsuarioController {
       }
 
       res.json(usuario);
+    } catch (error) {
+      this.handleError(res, error);
+    }
+  }
+
+  // POST /auth/refresh
+  async refresh(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ error: 'Unauthorized', message: 'No autenticado' });
+        return;
+      }
+
+      const result = await usuarioService.refreshToken(req.user.id);
+      res.json(result);
     } catch (error) {
       this.handleError(res, error);
     }

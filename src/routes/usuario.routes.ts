@@ -144,6 +144,26 @@ router.post('/auth/google', rateLimitAuth, usuarioValidation.google, validate, u
  */
 router.get('/auth/profile', rateLimitRead, authenticate, usuarioController.getProfile);
 
+/**
+ * @swagger
+ * /auth/refresh:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Refrescar token de acceso
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Nuevo token emitido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LoginResponse'
+ *       401:
+ *         description: No autenticado
+ */
+router.post('/auth/refresh', rateLimitRead, authenticate, usuarioController.refresh);
+
 // Read endpoints - lenient rate limiting
 
 /**
