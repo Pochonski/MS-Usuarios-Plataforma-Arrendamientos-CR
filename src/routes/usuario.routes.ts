@@ -164,6 +164,47 @@ router.get('/auth/profile', rateLimitRead, authenticate, usuarioController.getPr
  */
 router.post('/auth/refresh', rateLimitRead, authenticate, usuarioController.refresh);
 
+/**
+ * @swagger
+ * /auth/verify-email/{token}:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Verificar email con token
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Token de verificación de email
+ *     responses:
+ *       200:
+ *         description: Email verificado
+ *       400:
+ *         description: Token inválido o expirado
+ *       404:
+ *         description: Usuario no encontrado
+ */
+router.get('/auth/verify-email/:token', usuarioController.verifyEmail);
+
+/**
+ * @swagger
+ * /auth/send-verification-email:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Reenviar email de verificación
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Email de verificación enviado
+ *       401:
+ *         description: No autenticado
+ *       404:
+ *         description: Usuario no encontrado
+ */
+router.post('/auth/send-verification-email', rateLimitAuth, authenticate, usuarioController.sendVerificationEmail);
+
 // Read endpoints - lenient rate limiting
 
 /**

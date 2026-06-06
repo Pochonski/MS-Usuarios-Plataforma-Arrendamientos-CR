@@ -39,6 +39,10 @@ export const config = {
     allowedDomain: process.env.GOOGLE_ALLOWED_DOMAIN || '',
   },
 
+  emailVerification: {
+    frontendBaseUrl: process.env.EMAIL_VERIFICATION_FRONTEND_URL || 'https://arrendacr.com',
+  },
+
   rateLimit: {
     windowMs: parseInt(process.env.RL_WINDOW_MINUTES || '15', 10),
     auth: {

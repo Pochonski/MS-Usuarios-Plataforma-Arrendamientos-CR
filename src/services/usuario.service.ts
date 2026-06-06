@@ -5,6 +5,11 @@ import { CreateUsuarioDTO, UpdateUsuarioDTO, Usuario, GoogleUserInfo, UsuarioRes
 import { config } from '../config/env';
 import { RolUsuario } from '../models/enums';
 import { HttpError, UnauthorizedError, ConflictError } from '../middlewares/errorHandler';
+import {
+  generateEmailVerificationToken,
+  verifyEmailVerificationToken,
+  sendVerificationEmail,
+} from './emailVerification.service';
 
 export class UsuarioService {
   async getAll(): Promise<UsuarioResponse[]> {
@@ -154,6 +159,28 @@ export class UsuarioService {
     );
 
     return { token, user: this.sinPassword(usuario) };
+  }
+
+  async verifyEmail(token: string): Promise<{ userId: string; correo: string }> {
+    const { userId, correo } = verifyEmailVerificationToken(token);
+    const usuario = await usuarioDAO.findById(userId);
+    if (!usuario) {
+      throw new UnauthorizedError('Usuario no encontrado');
+    }
+    // TODO (Phase 5): add emailVerificado column to Usuarios table and set it to true here
+    // await usuarioDAO.setEmailVerificado(userId, true);
+    return { userId, correo };
+  }
+
+  async sendVerificationEmail(userId: string, correo: string): Promise<void> {
+    const usuario = await usuarioDAO.findById(userId);
+    if (!usuario) {
+      throw new UnauthorizedError('Usuario no encontrado');
+    }
+    const token = generateEmailVerificationToken(userId, correo);
+    const frontendBaseUrl = config.emailVerification?.frontendBaseUrl || 'https://arrendacr.com';
+    const verificationUrl = `${frontendBaseUrl}/verify-email?token=${token}`;
+    await sendVerificationEmail(correo, usuario.Nombre, verificationUrl);
   }
 
   async googleLogin(googleUser: GoogleUserInfo, rol?: RolUsuario): Promise<{ token: string; user: UsuarioResponse }> {

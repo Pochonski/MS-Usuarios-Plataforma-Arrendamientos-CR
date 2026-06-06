@@ -168,7 +168,36 @@ export class UsuarioController {
     }
   }
 
-  // DELETE /usuario/:id
+  // POST /auth/verify-email/:token
+  async verifyEmail(req: Request, res: Response): Promise<void> {
+    try {
+      const { token } = req.params;
+      if (!token) {
+        res.status(400).json({ error: 'Validation Error', message: 'Token requerido' });
+        return;
+      }
+
+      const { userId, correo } = await usuarioService.verifyEmail(token);
+      res.json({ message: 'Email verificado exitosamente', userId, correo });
+    } catch (error) {
+      this.handleError(res, error);
+    }
+  }
+
+  // POST /auth/send-verification-email
+  async sendVerificationEmail(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ error: 'Unauthorized', message: 'No autenticado' });
+        return;
+      }
+
+      await usuarioService.sendVerificationEmail(req.user.id, req.user.correo);
+      res.json({ message: 'Email de verificación enviado' });
+    } catch (error) {
+      this.handleError(res, error);
+    }
+  }
   async delete(req: AuthRequest, res: Response): Promise<void> {
     try {
       const id = req.params.id;
