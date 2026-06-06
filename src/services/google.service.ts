@@ -14,7 +14,15 @@ const VALID_GOOGLE_ISSUERS = new Set<string>([
   'https://accounts.google.com',
 ]);
 
-export async function verifyGoogleToken(token: string): Promise<GoogleUserInfo> {
+export interface VerifyGoogleTokenOptions {
+  nonce?: string;
+  hd?: string;
+}
+
+export async function verifyGoogleToken(
+  token: string,
+  options: VerifyGoogleTokenOptions = {}
+): Promise<GoogleUserInfo> {
   if (!config.google.clientId) {
     throw new HttpError('Google OAuth not configured', 500);
   }
@@ -37,6 +45,22 @@ export async function verifyGoogleToken(token: string): Promise<GoogleUserInfo> 
   }
   if (!payload.iss || !VALID_GOOGLE_ISSUERS.has(payload.iss)) {
     throw new UnauthorizedError('Invalid Google token issuer');
+  }
+
+  // Hosted Domain validation — restricts login to a specific Google Workspace domain
+  if (options.hd) {
+    if (payload.hd !== options.hd) {
+      throw new UnauthorizedError(
+        `Cuenta de Google debe pertenecer al dominio ${options.hd}`
+      );
+    }
+  }
+
+  // Nonce validation — prevents replay attacks
+  if (options.nonce) {
+    if (payload.nonce !== options.nonce) {
+      throw new UnauthorizedError('Nonce inválido — posible ataque de replay');
+    }
   }
 
   return {

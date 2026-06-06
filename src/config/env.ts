@@ -36,6 +36,7 @@ export const config = {
 
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID || '',
+    allowedDomain: process.env.GOOGLE_ALLOWED_DOMAIN || '',
   },
 
   rateLimit: {

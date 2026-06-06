@@ -4,6 +4,7 @@ import { googleService } from '../services/google.service';
 import { CreateUsuarioDTO, UpdateUsuarioDTO } from '../models/types';
 import { AuthRequest } from '../middlewares/auth';
 import { HttpError } from '../middlewares/errorHandler';
+import { config } from '../config/env';
 
 export class UsuarioController {
   // GET /usuarios (búsqueda por email, rol o paginación)
@@ -155,9 +156,11 @@ export class UsuarioController {
   // POST /auth/google
   async googleLogin(req: Request, res: Response): Promise<void> {
     try {
-      const { googleToken, rol } = req.body;
+      const { googleToken, rol, nonce } = req.body;
+      // hd from config is the authoritative allowed domain; frontend can send it but config overrides
+      const hd = config.google.allowedDomain || req.body.hd;
 
-      const googleUser = await googleService.verifyToken(googleToken);
+      const googleUser = await googleService.verifyToken(googleToken, { nonce, hd: hd || undefined });
       const result = await usuarioService.googleLogin(googleUser, rol);
       res.json(result);
     } catch (error) {
