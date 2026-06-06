@@ -103,7 +103,7 @@ export class UsuarioService {
     return usuarioDAO.delete(id);
   }
 
-  async login(correo: string, contrasena: string): Promise<{ token: string; usuario: UsuarioResponse }> {
+  async login(correo: string, contrasena: string): Promise<{ token: string; user: UsuarioResponse }> {
     const usuario = await usuarioDAO.findByCorreo(correo);
     if (!usuario) {
       throw new UnauthorizedError('Credenciales inválidas');
@@ -133,7 +133,7 @@ export class UsuarioService {
 
     return {
       token,
-      usuario: this.sinPassword(usuario),
+      user: this.sinPassword(usuario),
     };
   }
 
@@ -143,7 +143,7 @@ export class UsuarioService {
     return this.sinPassword(usuario);
   }
 
-  async googleLogin(googleUser: GoogleUserInfo, rol?: RolUsuario): Promise<{ token: string; usuario: UsuarioResponse }> {
+  async googleLogin(googleUser: GoogleUserInfo, rol?: RolUsuario): Promise<{ token: string; user: UsuarioResponse }> {
     const email = googleUser.email.toLowerCase().trim();
 
     // 1) Prefer lookup by GoogleId to avoid duplicates if the user changed their Google email
@@ -151,7 +151,7 @@ export class UsuarioService {
 
     if (usuario) {
       // Existing Google-linked user — login directly
-      return this.finalizeLogin(usuario);
+      return this.finalizeGoogleLogin(usuario);
     }
 
     // 2) No match by GoogleId — try matching by email
@@ -202,10 +202,10 @@ export class UsuarioService {
       usuario = created;
     }
 
-    return this.finalizeLogin(usuario);
+    return this.finalizeGoogleLogin(usuario);
   }
 
-  private async finalizeLogin(usuario: Usuario): Promise<{ token: string; usuario: UsuarioResponse }> {
+  private async finalizeGoogleLogin(usuario: Usuario): Promise<{ token: string; user: UsuarioResponse }> {
     const token = jwt.sign(
       { id: usuario.Id, correo: usuario.Correo, rol: usuario.Rol },
       config.jwt.secret,
@@ -214,7 +214,7 @@ export class UsuarioService {
 
     await usuarioDAO.updateLastLogin(usuario.Id);
 
-    return { token, usuario: this.sinPassword(usuario) };
+    return { token, user: this.sinPassword(usuario) };
   }
 
   private sinPassword(usuario: Usuario): UsuarioResponse {
