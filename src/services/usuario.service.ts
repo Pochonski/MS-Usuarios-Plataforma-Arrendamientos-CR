@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { usuarioDAO } from '../dao/usuario.dao';
+import { tokenRevocadoDAO } from '../dao/tokenRevocado.dao';
 import { CreateUsuarioDTO, UpdateUsuarioDTO, Usuario, GoogleUserInfo, UsuarioResponse } from '../models/types';
 import { config } from '../config/env';
 import { RolUsuario } from '../models/enums';
@@ -10,6 +11,24 @@ import {
   verifyEmailVerificationToken,
   sendVerificationEmail,
 } from './emailVerification.service';
+
+/** Genera un JWT ID único para revocation */
+function generateJti(): string {
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+}
+
+/** Verifica si la cuenta está bloqueada */
+function isAccountLocked(usuario: Usuario): boolean {
+  if (!usuario.BloqueadoHasta) return false;
+  return new Date(usuario.BloqueadoHasta) > new Date();
+}
+
+/** Obtiene minutos restantes de bloqueo */
+function getMinutesRemaining(usuario: Usuario): number {
+  if (!usuario.BloqueadoHasta) return 0;
+  const diff = new Date(usuario.BloqueadoHasta).getTime() - Date.now();
+  return diff > 0 ? Math.ceil(diff / 60000) : 0;
+}
 
 export class UsuarioService {
   async getAll(): Promise<UsuarioResponse[]> {
@@ -45,7 +64,7 @@ export class UsuarioService {
     return usuarios.map(u => this.sinPassword(u));
   }
 
-  async create(data: CreateUsuarioDTO): Promise<{ token: string; user: UsuarioResponse }> {
+  async create(data: CreateUsuarioDTO): Promise<{ token: string; refreshToken: string; user: UsuarioResponse }> {
     // Check if email already exists
     const existing = await usuarioDAO.findByCorreo(data.correo);
     if (existing) {
@@ -106,10 +125,19 @@ export class UsuarioService {
     return usuarioDAO.delete(id);
   }
 
-  async login(correo: string, contrasena: string): Promise<{ token: string; user: UsuarioResponse }> {
+  async login(correo: string, contrasena: string): Promise<{ token: string; refreshToken: string; user: UsuarioResponse }> {
     const usuario = await usuarioDAO.findByCorreo(correo);
     if (!usuario) {
       throw new UnauthorizedError('Credenciales inválidas');
+    }
+
+    // Phase 5: Check if account is locked
+    if (isAccountLocked(usuario)) {
+      const minutes = getMinutesRemaining(usuario);
+      const error = new UnauthorizedError(`Cuenta bloqueada. Intenta en ${minutes} minutos.`) as UnauthorizedError & { blockedUntil?: Date; statusCode: number };
+      error.statusCode = 429;
+      error.blockedUntil = usuario.BloqueadoHasta || undefined;
+      throw error;
     }
 
     // OAuth users cannot login with password
@@ -119,23 +147,62 @@ export class UsuarioService {
 
     const isPasswordValid = await bcrypt.compare(contrasena, usuario.ContrasenaHash);
     if (!isPasswordValid) {
-      throw new UnauthorizedError('Credenciales inválidas');
+      // Phase 5: Increment failed attempts
+      const intentos = await usuarioDAO.incrementFailedAttempts(usuario.Id);
+
+      if (intentos >= 5) {
+        // Re-fetch to get updated lockout info
+        const updatedUser = await usuarioDAO.findByCorreo(correo);
+        const error = new UnauthorizedError('Cuenta bloqueada por múltiples intentos fallidos. Intenta en 15 minutos.') as UnauthorizedError & { blockedUntil?: Date; intentosFallidos: number; statusCode: number };
+        error.statusCode = 429;
+        error.blockedUntil = updatedUser?.BloqueadoHasta || undefined;
+        error.intentosFallidos = intentos;
+        throw error;
+      }
+
+      const error = new UnauthorizedError('Credenciales inválidas') as UnauthorizedError & { intentosFallidos: number; intentosRestantes: number; statusCode: number };
+      error.statusCode = 401;
+      error.intentosFallidos = intentos;
+      error.intentosRestantes = 5 - intentos;
+      throw error;
     }
+
+    // Phase 5: Login successful - reset failed attempts
+    await usuarioDAO.resetFailedAttempts(usuario.Id);
+
+    // Generate jti for token revocation
+    const jti = generateJti();
+    const refreshJti = generateJti();
 
     const token = jwt.sign(
       {
         id: usuario.Id,
         correo: usuario.Correo,
         rol: usuario.Rol,
+        jti,
       },
       config.jwt.secret,
       { expiresIn: config.jwt.expiresIn } as jwt.SignOptions
     );
 
+    const refreshToken = jwt.sign(
+      {
+        id: usuario.Id,
+        tipo: 'refresh',
+        jti: refreshJti,
+      },
+      config.jwt.secret,
+      { expiresIn: '7d' } as jwt.SignOptions
+    );
+
     await usuarioDAO.updateLastLogin(usuario.Id);
+
+    // Cleanup old revoked tokens (best effort)
+    tokenRevocadoDAO.cleanup().catch(() => {});
 
     return {
       token,
+      refreshToken,
       user: this.sinPassword(usuario),
     };
   }
@@ -146,19 +213,49 @@ export class UsuarioService {
     return this.sinPassword(usuario);
   }
 
-  async refreshToken(id: string): Promise<{ token: string; user: UsuarioResponse }> {
+  async refreshToken(id: string, refreshJti?: string): Promise<{ token: string; refreshToken: string; user: UsuarioResponse }> {
     const usuario = await usuarioDAO.findById(id);
     if (!usuario) {
       throw new UnauthorizedError('Usuario no encontrado');
     }
 
+    // Phase 5: Revoke the old refresh token
+    if (refreshJti) {
+      await tokenRevocadoDAO.revoke(refreshJti);
+    }
+
+    // Check if account is locked
+    if (isAccountLocked(usuario)) {
+      const minutes = getMinutesRemaining(usuario);
+      const error = new UnauthorizedError(`Cuenta bloqueada. Intenta en ${minutes} minutos.`) as UnauthorizedError & { blockedUntil?: Date; statusCode: number };
+      error.statusCode = 429;
+      error.blockedUntil = usuario.BloqueadoHasta || undefined;
+      throw error;
+    }
+
+    // Generate new tokens with jti
+    const jti = generateJti();
+    const newRefreshJti = generateJti();
+
     const token = jwt.sign(
-      { id: usuario.Id, correo: usuario.Correo, rol: usuario.Rol },
+      { id: usuario.Id, correo: usuario.Correo, rol: usuario.Rol, jti },
       config.jwt.secret,
       { expiresIn: config.jwt.expiresIn } as jwt.SignOptions
     );
 
-    return { token, user: this.sinPassword(usuario) };
+    const refreshToken = jwt.sign(
+      { id: usuario.Id, tipo: 'refresh', jti: newRefreshJti },
+      config.jwt.secret,
+      { expiresIn: '7d' } as jwt.SignOptions
+    );
+
+    return { token, refreshToken, user: this.sinPassword(usuario) };
+  }
+
+  // Phase 5: Logout - revoke the token
+  async logout(tokenJti: string, tokenExp?: number): Promise<void> {
+    const expiracion = tokenExp ? new Date(tokenExp * 1000) : undefined;
+    await tokenRevocadoDAO.revoke(tokenJti, expiracion);
   }
 
   async verifyEmail(token: string): Promise<{ userId: string; correo: string }> {
@@ -183,7 +280,7 @@ export class UsuarioService {
     await sendVerificationEmail(correo, usuario.Nombre, verificationUrl);
   }
 
-  async googleLogin(googleUser: GoogleUserInfo, rol?: RolUsuario): Promise<{ token: string; user: UsuarioResponse }> {
+  async googleLogin(googleUser: GoogleUserInfo, rol?: RolUsuario): Promise<{ token: string; refreshToken: string; user: UsuarioResponse }> {
     const email = googleUser.email.toLowerCase().trim();
 
     // 1) Prefer lookup by GoogleId to avoid duplicates if the user changed their Google email
@@ -245,16 +342,25 @@ export class UsuarioService {
     return this.finalizeGoogleLogin(usuario);
   }
 
-  private async finalizeGoogleLogin(usuario: Usuario): Promise<{ token: string; user: UsuarioResponse }> {
+  private async finalizeGoogleLogin(usuario: Usuario): Promise<{ token: string; refreshToken: string; user: UsuarioResponse }> {
+    const jti = generateJti();
+    const refreshJti = generateJti();
+
     const token = jwt.sign(
-      { id: usuario.Id, correo: usuario.Correo, rol: usuario.Rol },
+      { id: usuario.Id, correo: usuario.Correo, rol: usuario.Rol, jti },
       config.jwt.secret,
       { expiresIn: config.jwt.expiresIn } as jwt.SignOptions
     );
 
+    const refreshToken = jwt.sign(
+      { id: usuario.Id, tipo: 'refresh', jti: refreshJti },
+      config.jwt.secret,
+      { expiresIn: '7d' } as jwt.SignOptions
+    );
+
     await usuarioDAO.updateLastLogin(usuario.Id);
 
-    return { token, user: this.sinPassword(usuario) };
+    return { token, refreshToken, user: this.sinPassword(usuario) };
   }
 
   private sinPassword(usuario: Usuario): UsuarioResponse {

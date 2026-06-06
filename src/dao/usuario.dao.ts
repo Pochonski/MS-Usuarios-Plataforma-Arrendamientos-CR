@@ -132,6 +132,37 @@ export class UsuarioDAO {
     );
   }
 
+  // Phase 5: Account Lockout
+  async incrementFailedAttempts(id: string): Promise<number> {
+    // Get current attempts
+    const current = await database.query<{ IntentosFallidos: number }>(
+      'SELECT IntentosFallidos FROM Usuarios WHERE Id = ?',
+      [id]
+    );
+    const currentAttempts = current[0]?.IntentosFallidos || 0;
+    const newAttempts = currentAttempts + 1;
+
+    // If >= 5, set 15-minute lockout
+    let bloqueadoHasta = null;
+    if (newAttempts >= 5) {
+      bloqueadoHasta = new Date(Date.now() + 15 * 60 * 1000); // 15 min from now
+    }
+
+    await database.execute(
+      'UPDATE Usuarios SET IntentosFallidos = ?, BloqueadoHasta = ? WHERE Id = ?',
+      [newAttempts, bloqueadoHasta, id]
+    );
+
+    return newAttempts;
+  }
+
+  async resetFailedAttempts(id: string): Promise<void> {
+    await database.execute(
+      'UPDATE Usuarios SET IntentosFallidos = 0, BloqueadoHasta = NULL WHERE Id = ?',
+      [id]
+    );
+  }
+
   async getNextId(): Promise<string> {
     // Use atomic sequence table to avoid race conditions
     const result = await database.query<{ CurrentValue: number }>(

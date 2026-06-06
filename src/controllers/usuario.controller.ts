@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import { usuarioService } from '../services/usuario.service';
 import { googleService } from '../services/google.service';
 import { CreateUsuarioDTO, UpdateUsuarioDTO } from '../models/types';
@@ -146,8 +147,59 @@ export class UsuarioController {
         return;
       }
 
-      const result = await usuarioService.refreshToken(req.user.id);
+      // Extract refresh token from body or header
+      const refreshToken = req.body.refreshToken || req.headers['x-refresh-token'] as string;
+      let refreshJti: string | undefined;
+
+      if (refreshToken) {
+        try {
+          const decoded = jwt.decode(refreshToken) as { jti?: string } | null;
+          refreshJti = decoded?.jti;
+        } catch {
+          // Invalid refresh token, proceed without revocation
+        }
+      }
+
+      const result = await usuarioService.refreshToken(req.user.id, refreshJti);
       res.json(result);
+    } catch (error) {
+      this.handleError(res, error);
+    }
+  }
+
+  // POST /auth/logout (Phase 5)
+  async logout(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ error: 'Unauthorized', message: 'No autenticado' });
+        return;
+      }
+
+      // Extract the token's jti and exp from the Authorization header
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        res.status(401).json({ error: 'Unauthorized', message: 'Token no proporcionado' });
+        return;
+      }
+
+      const token = authHeader.substring(7);
+      let jti: string | undefined;
+      let exp: number | undefined;
+
+      try {
+        const decoded = jwt.decode(token) as { jti?: string; exp?: number } | null;
+        jti = decoded?.jti;
+        exp = decoded?.exp;
+      } catch {
+        // Token decoding failed, but we still proceed (logout will just not revoke)
+      }
+
+      // Revoke the access token
+      if (jti) {
+        await usuarioService.logout(jti, exp);
+      }
+
+      res.json({ message: 'Logout exitoso. Sesión revocada.' });
     } catch (error) {
       this.handleError(res, error);
     }
@@ -226,7 +278,21 @@ export class UsuarioController {
     const statusCode = isHttpError ? error.statusCode : 500;
     const errorName = isHttpError ? error.name : 'Error';
     const message = error instanceof Error ? error.message : 'Error desconocido';
-    res.status(statusCode).json({ error: errorName, message });
+
+    // Phase 5: Handle lockout errors with extra info
+    const lockoutError = error as { blockedUntil?: Date; intentosFallidos?: number; intentosRestantes?: number };
+    const response: Record<string, unknown> = { error: errorName, message };
+    if (lockoutError.blockedUntil) {
+      response.blockedUntil = lockoutError.blockedUntil;
+    }
+    if (lockoutError.intentosFallidos !== undefined) {
+      response.intentosFallidos = lockoutError.intentosFallidos;
+    }
+    if (lockoutError.intentosRestantes !== undefined) {
+      response.intentosRestantes = lockoutError.intentosRestantes;
+    }
+
+    res.status(statusCode).json(response);
   }
 }
 

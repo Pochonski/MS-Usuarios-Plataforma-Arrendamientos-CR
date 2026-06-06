@@ -12,6 +12,16 @@ export interface Usuario {
   FechaRegistro: Date;
   UltimoLogin?: Date;
   GoogleId?: string;
+  // Lockout fields (Phase 5)
+  IntentosFallidos?: number;
+  BloqueadoHasta?: Date | null;
+}
+
+// Token revocation entry
+export interface TokenRevocado {
+  TokenId: string;
+  RevocadoEl: Date;
+  Expiracion?: Date | null;
 }
 
 // DTOs for API requests (camelCase for external API)

@@ -98,7 +98,8 @@ describe('Auth Integration — Login/Register/Google', () => {
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
           token: expect.any(String),
-          usuario: expect.objectContaining({ id: 'usr-001', correo: 'test@example.com' }),
+          refreshToken: expect.any(String),
+          user: expect.objectContaining({ id: 'usr-001', correo: 'test@example.com' }),
         })
       );
       expect(mockedDAO.updateLastLogin).toHaveBeenCalledWith('usr-001');
@@ -160,7 +161,11 @@ describe('Auth Integration — Login/Register/Google', () => {
       );
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'usr-042', correo: 'new@example.com' })
+        expect.objectContaining({ 
+          token: expect.any(String),
+          refreshToken: expect.any(String),
+          user: expect.objectContaining({ id: 'usr-042', correo: 'new@example.com' })
+        })
       );
     });
 
@@ -225,10 +230,10 @@ describe('Auth Integration — Login/Register/Google', () => {
 
       await usuarioController.googleLogin(req, res);
 
-      expect(mockedGoogle.verifyToken).toHaveBeenCalledWith('valid-token');
+      expect(mockedGoogle.verifyToken).toHaveBeenCalledWith('valid-token', expect.any(Object));
       expect(mockedDAO.findByGoogleId).toHaveBeenCalledWith('google-sub-1');
       expect(res.json).toHaveBeenCalledWith(
-        expect.objectContaining({ token: expect.any(String), usuario: expect.any(Object) })
+        expect.objectContaining({ token: expect.any(String), refreshToken: expect.any(String), user: expect.any(Object) })
       );
       expect(mockedDAO.setGoogleProfile).not.toHaveBeenCalled();
     });

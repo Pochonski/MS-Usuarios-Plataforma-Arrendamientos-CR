@@ -166,6 +166,22 @@ router.post('/auth/refresh', rateLimitRead, authenticate, usuarioController.refr
 
 /**
  * @swagger
+ * /auth/logout:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Cerrar sesión y revocar token
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout exitoso
+ *       401:
+ *         description: No autenticado
+ */
+router.post('/auth/logout', rateLimitAuth, authenticate, usuarioController.logout);
+
+/**
+ * @swagger
  * /auth/verify-email/{token}:
  *   get:
  *     tags: [Auth]
