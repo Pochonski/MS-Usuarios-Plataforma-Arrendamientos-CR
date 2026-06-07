@@ -34,8 +34,6 @@ class App {
     this.app.use(cors({
       origin: config.nodeEnv === 'production'
         ? [
-            'https://arrendacr.com',
-            'https://www.arrendacr.com',
             'https://agreeable-ground-0b1436910.6.azurestaticapps.net'
           ]
         : '*',

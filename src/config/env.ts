@@ -40,7 +40,7 @@ export const config = {
   },
 
   emailVerification: {
-    frontendBaseUrl: process.env.EMAIL_VERIFICATION_FRONTEND_URL || 'https://arrendacr.com',
+    frontendBaseUrl: process.env.EMAIL_VERIFICATION_FRONTEND_URL || 'https://agreeable-ground-0b1436910.6.azurestaticapps.net',
   },
 
   rateLimit: {

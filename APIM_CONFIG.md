@@ -23,8 +23,7 @@ Aplicar la siguiente política (XML) en el scope de la API o de cada operación:
   <inbound>
     <cors allow-credentials="true">
       <allowed-origins>
-        <origin>https://arrendacr.com</origin>
-        <origin>https://www.arrendacr.com</origin>
+        <origin>https://agreeable-ground-0b1436910.6.azurestaticapps.net</origin>
         <origin>https://agreeable-ground-0b1436910.6.azurestaticapps.net</origin>
         <origin>http://localhost:3000</origin>
         <origin>http://localhost:5173</origin>
@@ -100,8 +99,7 @@ curl -i -X POST \
 
 - [ ] Política CORS aplicada en APIM (scope API o por operación)
 - [ ] En **Google Cloud Console** → Credentials → OAuth Client ID → Authorized JavaScript origins:
-  - [ ] `https://arrendacr.com`
-  - [ ] `https://www.arrendacr.com`
+  - [ ] `https://agreeable-ground-0b1436910.6.azurestaticapps.net`
   - [ ] `https://agreeable-ground-0b1436910.6.azurestaticapps.net`
   - [ ] `http://localhost:*` (para desarrollo)
 - [ ] Frontend lee `VITE_APIM_SUBSCRIPTION_KEY` desde variables de entorno de Azure SWA
