@@ -1,5 +1,7 @@
 # APIM Configuration Guide
 
+> ⚠️ **DEPRECADo (2026-06-08)** — El frontend ya no usa APIM. El path `/api/*` se rutea via el **linked backend** del SWA directo al App Service de `ms-usuarios-boot`. El `VITE_API_PREFIX = '/api'` por default hace que el cliente siempre pegue `/api/...` y el SWA lo proxia internamente (mismo origen para el browser → sin CORS, sin preflight). Este doc queda como referencia por si en el futuro se reactiva APIM para integraciones B2B.
+
 Esta guía explica cómo configurar **Azure API Management** para que el frontend (Azure Static Web Apps) pueda consumir los endpoints de `MS-Usuarios` desde el navegador.
 
 ## Problema
@@ -105,7 +107,7 @@ curl -i -X POST \
 - [ ] Frontend lee `VITE_APIM_SUBSCRIPTION_KEY` desde variables de entorno de Azure SWA
 - [ ] Frontend envía header `Ocp-Apim-Subscription-Key` en cada request
 
-## Alternativa: Sin APIM para endpoints públicos (BFF pattern)
+## Alternativa: Sin APIM para endpoints públicos (BFF pattern) ✅ (ESTE ES EL SETUP ACTUAL)
 
 Si prefieres evitar la complejidad de APIM para el frontend, considera:
 
@@ -115,6 +117,11 @@ Si prefieres evitar la complejidad de APIM para el frontend, considera:
 4. APIM queda solo para integraciones B2B server-to-server
 
 Esta es la opción recomendada para aplicaciones web con frontend público.
+
+**Setup actual del repo:**
+- Frontend: `Plataforma-de-Arrendamientos-CR/src/lib/api/client.ts` define `API_PREFIX = '/api'` (overridable con `VITE_API_PREFIX`). El cliente siempre pega `/api/...`.
+- SWA: el linked backend proxia `agreeable-ground-0b1436910.6.azurestaticapps.net/api/*` → `arrendamientos-ms-users-boot.azurewebsites.net/api/*`. El browser ve mismo-origen.
+- Si necesitás pegarle al App Service sin pasar por el SWA (ej. Postman contra prod), usá el env `azure-swa.postman_environment.json` con `base_url` apuntando al SWA — NO al App Service directo (ver "Efecto colateral del link" en `AZURE_INFRASTRUCTURE.md`).
 
 ---
 

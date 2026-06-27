@@ -1,18 +1,13 @@
 {
 	"info": {
-		"name": "MS-Usuarios - Plataforma Arrendamientos CR (PRODUCCIÓN)",
-		"description": "Colección de endpoints para el microservicio de Usuarios. Configurada para producción vía Azure APIM (plataforma-arrendamientos-api). Incluye headers de seguridad mTLS y subscription key.",
+		"name": "MS-Usuarios - Plataforma Arrendamientos CR",
+		"description": "Colección de endpoints para el microservicio de Usuarios. Funciona contra local (http://localhost:3000/api) o producción vía Azure APIM, según el environment activo. Los endpoints protegidos usan Bearer auth a nivel de request; los de auth/login no requieren token.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"variable": [
 		{
 			"key": "baseUrl",
-			"value": "https://plataforma-arrendamientos-api.azure-api.net",
-			"type": "string"
-		},
-		{
-			"key": "subscriptionKey",
-			"value": "{{subscriptionKey}}",
+			"value": "{{baseUrl}}",
 			"type": "string"
 		},
 		{
@@ -21,54 +16,43 @@
 			"type": "string"
 		}
 	],
-	"auth": {
-		"type": "bearer",
-		"bearer": [
-			{
-				"key": "token",
-				"value": "{{authToken}}",
-				"type": "string"
-			}
-		]
-	},
 	"item": [
 		{
 			"name": "Health Check",
 			"request": {
-				"name": "Health Check",
-				"request": {
-					"method": "GET",
-					"header": [
-						{
-							"key": "Ocp-Apim-Subscription-Key",
-							"value": "{{subscriptionKey}}",
-							"type": "text"
-						}
-					],
-					"url": {
-						"raw": "{{baseUrl}}/health",
-						"host": ["{{baseUrl}}"],
-						"path": ["health"]
-					},
-					"description": "Health check endpoint - skips APIM cert validation"
-				},
-				"event": [
+				"method": "GET",
+				"header": [
 					{
-						"listen": "test",
-						"script": {
-							"exec": [
-								"pm.test('Status code is 200', function() {",
-								"    pm.response.to.have.status(200);",
-								"});",
-								"pm.test('Response has status', function() {",
-								"    var jsonData = pm.response.json();",
-								"    pm.expect(jsonData).to.have.property('status');",
-								"});"
-							]
-						}
+						"key": "Ocp-Apim-Subscription-Key",
+						"value": "{{subscriptionKey}}",
+						"type": "text",
+						"disabled": true
 					}
-				]
-			}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/health",
+					"host": ["{{baseUrl}}"],
+					"path": ["health"]
+				},
+				"description": "Health check endpoint. En APIM salta validación de cert."
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function() {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test('Response has status', function() {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('status');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			]
 		},
 		{
 			"name": "Auth",
@@ -76,13 +60,11 @@
 				{
 					"name": "POST /auth/login",
 					"request": {
+						"auth": {
+							"type": "noauth"
+						},
 						"method": "POST",
 						"header": [
-							{
-								"key": "Ocp-Apim-Subscription-Key",
-								"value": "{{subscriptionKey}}",
-								"type": "text"
-							},
 							{
 								"key": "Content-Type",
 								"value": "application/json",
@@ -98,7 +80,7 @@
 							"host": ["{{baseUrl}}"],
 							"path": ["auth", "login"]
 						},
-						"description": "Login con email y contraseña"
+						"description": "Login con email y contraseña. No requiere auth."
 					},
 					"event": [
 						{
@@ -119,8 +101,10 @@
 									"if (pm.response.code === 200) {",
 									"    var jsonData = pm.response.json();",
 									"    pm.collectionVariables.set('authToken', jsonData.token);",
+									"    console.log('Token guardado en authToken');",
 									"}"
-								]
+								],
+								"type": "text/javascript"
 							}
 						}
 					]
@@ -128,13 +112,11 @@
 				{
 					"name": "POST /auth/registro",
 					"request": {
+						"auth": {
+							"type": "noauth"
+						},
 						"method": "POST",
 						"header": [
-							{
-								"key": "Ocp-Apim-Subscription-Key",
-								"value": "{{subscriptionKey}}",
-								"type": "text"
-							},
 							{
 								"key": "Content-Type",
 								"value": "application/json",
@@ -150,7 +132,7 @@
 							"host": ["{{baseUrl}}"],
 							"path": ["auth", "registro"]
 						},
-						"description": "Registro de nuevo usuario"
+						"description": "Registro de nuevo usuario. No requiere auth."
 					},
 					"event": [
 						{
@@ -164,7 +146,8 @@
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData).to.have.property('id');",
 									"});"
-								]
+								],
+								"type": "text/javascript"
 							}
 						}
 					]
@@ -172,13 +155,11 @@
 				{
 					"name": "POST /auth/google",
 					"request": {
+						"auth": {
+							"type": "noauth"
+						},
 						"method": "POST",
 						"header": [
-							{
-								"key": "Ocp-Apim-Subscription-Key",
-								"value": "{{subscriptionKey}}",
-								"type": "text"
-							},
 							{
 								"key": "Content-Type",
 								"value": "application/json",
@@ -194,7 +175,7 @@
 							"host": ["{{baseUrl}}"],
 							"path": ["auth", "google"]
 						},
-						"description": "Login con Google OAuth"
+						"description": "Login con Google OAuth. No requiere auth."
 					},
 					"event": [
 						{
@@ -208,7 +189,8 @@
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData).to.have.property('token');",
 									"});"
-								]
+								],
+								"type": "text/javascript"
 							}
 						}
 					]
@@ -216,25 +198,24 @@
 				{
 					"name": "GET /auth/profile",
 					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
 						"method": "GET",
-						"header": [
-							{
-								"key": "Ocp-Apim-Subscription-Key",
-								"value": "{{subscriptionKey}}",
-								"type": "text"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/auth/profile",
 							"host": ["{{baseUrl}}"],
 							"path": ["auth", "profile"]
 						},
-						"description": "Obtener perfil del usuario autenticado"
+						"description": "Obtener perfil del usuario autenticado. Requiere Bearer token (seteado por /auth/login)."
 					},
 					"event": [
 						{
@@ -252,7 +233,8 @@
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData).to.have.property('correo');",
 									"});"
-								]
+								],
+								"type": "text/javascript"
 							}
 						}
 					]
@@ -265,14 +247,18 @@
 				{
 					"name": "GET /usuarios",
 					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
 						"method": "GET",
-						"header": [
-							{
-								"key": "Ocp-Apim-Subscription-Key",
-								"value": "{{subscriptionKey}}",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/usuarios?email={{email}}&rol={{rol}}",
 							"host": ["{{baseUrl}}"],
@@ -290,7 +276,7 @@
 								}
 							]
 						},
-						"description": "Listar usuarios - opcionalmente filtrar por email o rol"
+						"description": "Listar usuarios - opcionalmente filtrar por email o rol. Requiere Bearer token."
 					},
 					"event": [
 						{
@@ -304,7 +290,8 @@
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData).to.be.an('array');",
 									"});"
-								]
+								],
+								"type": "text/javascript"
 							}
 						}
 					]
@@ -312,20 +299,24 @@
 				{
 					"name": "GET /usuarios/:id",
 					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
 						"method": "GET",
-						"header": [
-							{
-								"key": "Ocp-Apim-Subscription-Key",
-								"value": "{{subscriptionKey}}",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/usuario/{{userId}}",
 							"host": ["{{baseUrl}}"],
 							"path": ["usuario", "{{userId}}"]
 						},
-						"description": "Obtener usuario por ID"
+						"description": "Obtener usuario por ID. Requiere Bearer token."
 					},
 					"event": [
 						{
@@ -335,7 +326,8 @@
 									"pm.test('Status code is 200 or 404', function() {",
 									"    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
 									"});"
-								]
+								],
+								"type": "text/javascript"
 							}
 						}
 					]
@@ -343,18 +335,18 @@
 				{
 					"name": "PUT /usuarios/:id",
 					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
 						"method": "PUT",
 						"header": [
-							{
-								"key": "Ocp-Apim-Subscription-Key",
-								"value": "{{subscriptionKey}}",
-								"type": "text"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}",
-								"type": "text"
-							},
 							{
 								"key": "Content-Type",
 								"value": "application/json",
@@ -370,7 +362,7 @@
 							"host": ["{{baseUrl}}"],
 							"path": ["usuario", "{{userId}}"]
 						},
-						"description": "Actualizar usuario (solo puede actualizar su propio perfil)"
+						"description": "Actualizar usuario (solo puede actualizar su propio perfil). Requiere Bearer token."
 					},
 					"event": [
 						{
@@ -380,7 +372,8 @@
 									"pm.test('Status code is 200 or 403', function() {",
 									"    pm.expect(pm.response.code).to.be.oneOf([200, 403]);",
 									"});"
-								]
+								],
+								"type": "text/javascript"
 							}
 						}
 					]
